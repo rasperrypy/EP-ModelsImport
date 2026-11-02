@@ -315,7 +315,7 @@ public final class CartModelImportScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderTransparentBackground(graphics);
+        graphics.fill(0, 0, width, height, 0x99000000);
         int panelX = width / 2 - 145;
         int panelY = Math.max(48, height / 2 - 62);
         graphics.drawCenteredString(font, title, width / 2, 15, 0xFFFFFF);

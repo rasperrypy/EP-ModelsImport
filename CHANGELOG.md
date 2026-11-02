@@ -1,5 +1,14 @@
 # Changelog
 
+## 5.5.1
+
+### Correction du flou
+- Le menu d’import ne fait plus appel au fond transparent de Minecraft, qui appliquait encore un flou derrière les textes et l’aperçu.
+- Le monde est maintenant assombri par un voile translucide dessiné directement, sans flou ; les textes et l’aperçu restent nets.
+
+### Compatibilité
+- Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
+
 ## 5.5.0
 
 ### Aperçu 3D interactif
@@ -14,7 +23,7 @@
 ## 5.1.0
 
 ### Corrections
-- Le menu d’import n’applique plus le flou d’arrière-plan au texte et à l’aperçu ; un voile sombre translucide conserve le contraste tout en laissant le monde visible.
+- Première tentative de remplacement du flou d’arrière-plan du menu d’import ; correction complétée en 5.5.1 car le fond transparent de Minecraft continuait à appliquer le flou.
 
 ### Compatibilité
 - Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
