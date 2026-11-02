@@ -1,10 +1,13 @@
 package fr.cartmodels.command;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import fr.cartmodels.CartModels;
 import fr.cartmodels.model.CartModelStore;
 import fr.cartmodels.network.ModelPayloads;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.component.DataComponents;
@@ -18,6 +21,7 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.bus.api.SubscribeEvent;
 
 public final class ModelCommands {
+    private static final int MODELS_PER_PAGE = 20;
     private static final SuggestionProvider<net.minecraft.commands.CommandSourceStack> MODEL_SUGGESTIONS =
             (context, builder) -> {
                 var server = context.getSource().getServer();
@@ -38,14 +42,26 @@ public final class ModelCommands {
                     return 1;
                 }));
 
-        event.getDispatcher().register(Commands.literal("give-model")
+        var giveModelCommand = Commands.literal("give-model")
                 .then(Commands.argument("name", StringArgumentType.word())
                         .suggests(MODEL_SUGGESTIONS)
                         .executes(context -> giveModel(context.getSource().getPlayer(),
-                                StringArgumentType.getString(context, "name"), context.getSource()))));
+                                StringArgumentType.getString(context, "name"), 1, context.getSource()))
+                        .then(Commands.argument("amount", IntegerArgumentType.integer(1, 64))
+                                .executes(context -> giveModel(context.getSource().getPlayer(),
+                                        StringArgumentType.getString(context, "name"),
+                                        IntegerArgumentType.getInteger(context, "amount"),
+                                        context.getSource()))));
+        event.getDispatcher().register(giveModelCommand);
+
+        event.getDispatcher().register(Commands.literal("list-models")
+                .executes(context -> listModels(context.getSource(), 1))
+                .then(Commands.argument("page", IntegerArgumentType.integer(1))
+                        .executes(context -> listModels(context.getSource(),
+                                IntegerArgumentType.getInteger(context, "page")))));
     }
 
-    private static int giveModel(ServerPlayer player, String name,
+    private static int giveModel(ServerPlayer player, String name, int amount,
                                  net.minecraft.commands.CommandSourceStack source) {
         if (player == null) {
             source.sendFailure(Component.literal("This command must be run by a player."));
@@ -57,7 +73,7 @@ public final class ModelCommands {
             return 0;
         }
 
-        ItemStack stack = new ItemStack(CartModels.MODEL_BLOCK_ITEM.get());
+        ItemStack stack = new ItemStack(CartModels.MODEL_BLOCK_ITEM.get(), amount);
         CompoundTag modelTag = new CompoundTag();
         modelTag.putString("model_name", name);
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(modelTag));
@@ -65,7 +81,29 @@ public final class ModelCommands {
         if (!player.getInventory().add(stack)) {
             player.drop(stack, false);
         }
-        source.sendSuccess(() -> Component.literal("Gave model block '" + name + "'."), false);
+        source.sendSuccess(() -> Component.translatable("commands.cartmodels.give.success", amount, name), false);
         return 1;
+    }
+
+    private static int listModels(net.minecraft.commands.CommandSourceStack source, int requestedPage) {
+        List<String> names = new ArrayList<>(CartModelStore.get(source.getServer()).snapshot().keySet());
+        if (names.isEmpty()) {
+            source.sendSuccess(() -> Component.translatable("commands.cartmodels.list.empty"), false);
+            return 0;
+        }
+
+        int pageCount = (names.size() - 1) / MODELS_PER_PAGE + 1;
+        if (requestedPage > pageCount) {
+            source.sendFailure(Component.translatable("commands.cartmodels.list.invalid_page", pageCount));
+            return 0;
+        }
+        int start = (requestedPage - 1) * MODELS_PER_PAGE;
+        int end = Math.min(start + MODELS_PER_PAGE, names.size());
+        source.sendSuccess(() -> Component.translatable(
+                "commands.cartmodels.list.header", names.size(), requestedPage, pageCount), false);
+        for (String name : names.subList(start, end)) {
+            source.sendSuccess(() -> Component.literal("- " + name), false);
+        }
+        return names.size();
     }
 }

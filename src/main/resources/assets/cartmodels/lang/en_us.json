@@ -1,4 +1,8 @@
 {
   "block.cartmodels.model_block": "Imported Model",
-  "itemGroup.cartmodels": "Cart Models"
+  "itemGroup.cartmodels": "Cart Models",
+  "commands.cartmodels.give.success": "Gave %1$s model block(s) '%2$s'.",
+  "commands.cartmodels.list.empty": "No models have been imported yet.",
+  "commands.cartmodels.list.header": "%1$s imported model(s) — page %2$s/%3$s:",
+  "commands.cartmodels.list.invalid_page": "That page does not exist. The last page is %1$s."
 }

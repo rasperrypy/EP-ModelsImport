@@ -3,6 +3,7 @@ package fr.cartmodels.client;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.resources.ResourceLocation;
@@ -18,9 +19,10 @@ public final class ModelRenderCache {
     }
 
     public static void put(String name, String json) {
+        String cacheKey = canonicalName(name);
         try {
             JsonObject model = JsonParser.parseString(json).getAsJsonObject();
-            MODELS.put(name, model);
+            MODELS.put(cacheKey, model);
             JsonObject textures = model.has("textures") ? model.getAsJsonObject("textures") : new JsonObject();
             Map<String, ResourceLocation> locations = new ConcurrentHashMap<>();
             for (Map.Entry<String, com.google.gson.JsonElement> entry : textures.entrySet()) {
@@ -30,21 +32,25 @@ public final class ModelRenderCache {
                 JsonObject texture = entry.getValue().getAsJsonObject();
                 if (texture.has("image")) {
                     locations.put(entry.getKey(),
-                            DynamicTextures.register(name, entry.getKey(), texture.get("image").getAsString()));
+                            DynamicTextures.register(cacheKey, entry.getKey(), texture.get("image").getAsString()));
                 }
             }
-            MODEL_TEXTURES.put(name, locations);
+            MODEL_TEXTURES.put(cacheKey, locations);
         } catch (IllegalStateException | JsonSyntaxException exception) {
             LOGGER.error("Received invalid model data for '{}'", name, exception);
         }
     }
 
     public static JsonObject get(String name) {
-        return MODELS.get(name);
+        return MODELS.get(canonicalName(name));
     }
 
     public static ResourceLocation textureLocation(String modelName, String textureId) {
-        return MODEL_TEXTURES.getOrDefault(modelName, Map.of()).getOrDefault(textureId,
+        return MODEL_TEXTURES.getOrDefault(canonicalName(modelName), Map.of()).getOrDefault(textureId,
                 ResourceLocation.withDefaultNamespace("block/white_wool"));
+    }
+
+    private static String canonicalName(String name) {
+        return name.toLowerCase(Locale.ROOT);
     }
 }

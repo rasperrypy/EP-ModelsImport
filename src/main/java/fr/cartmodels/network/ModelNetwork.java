@@ -99,11 +99,14 @@ public final class ModelNetwork {
                         .decode(ByteBuffer.wrap(completed)).toString();
                 String normalized = CartModelParser.parse(payload.fileName(), input);
                 CartModelStore store = CartModelStore.get(player.server);
+                boolean replacing = store.contains(payload.modelName());
                 store.put(payload.modelName(), normalized);
                 player.server.getPlayerList().getPlayers()
                         .forEach(onlinePlayer -> sendModel(onlinePlayer, payload.modelName(), normalized));
                 PacketDistributor.sendToPlayer(player,
-                        new ModelPayloads.ImportResult(true, "Imported model '" + payload.modelName() + "'."));
+                        new ModelPayloads.ImportResult(true, replacing
+                                ? "Replaced imported model '" + payload.modelName() + "'."
+                                : "Imported model '" + payload.modelName() + "'."));
             } catch (IOException | IllegalArgumentException exception) {
                 UPLOADS.clear(payload.transferId());
                 LOGGER.warn("Rejected model import '{}' from {}", payload.modelName(), player.getGameProfile().getName(),
