@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.5.0
+
+### Corrections
+- Les transferts de modèles incomplets expirent après deux minutes, libérant leur mémoire même si le client se déconnecte.
+- Le réassembleur limite désormais les transferts simultanés et la mémoire cumulée, et rejette les métadonnées de chunks impossibles.
+- Un échec d’écriture du fichier de données annule maintenant la modification en mémoire au lieu de laisser un modèle non sauvegardé disponible jusqu’au redémarrage.
+
+### Compatibilité
+- Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
+
 ## 3.0.0
 
 ### Ajouts

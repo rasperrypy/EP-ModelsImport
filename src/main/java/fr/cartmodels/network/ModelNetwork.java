@@ -62,6 +62,10 @@ public final class ModelNetwork {
         sendChunks(player, name, "model.json", json.getBytes(StandardCharsets.UTF_8));
     }
 
+    public static void cleanupExpiredUploads() {
+        UPLOADS.cleanupExpired();
+    }
+
     private static void sendChunks(ServerPlayer player, String name, String fileName, byte[] bytes) {
         String encoded = Base64.getEncoder().encodeToString(bytes);
         int chunks = (encoded.length() + ModelChunkAssembler.CHUNK_SIZE - 1) / ModelChunkAssembler.CHUNK_SIZE;

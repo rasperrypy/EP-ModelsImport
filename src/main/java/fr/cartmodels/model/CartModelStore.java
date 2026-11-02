@@ -46,8 +46,18 @@ public final class CartModelStore {
         if (!isValidName(name)) {
             throw new IOException("Names must be 1–32 letters, numbers, underscores, or hyphens.");
         }
+        String previous = models.get(name);
         models.put(name, modelJson);
-        save();
+        try {
+            save();
+        } catch (IOException exception) {
+            if (previous == null) {
+                models.remove(name);
+            } else {
+                models.put(name, previous);
+            }
+            throw exception;
+        }
     }
 
     public synchronized String getModel(String name) {

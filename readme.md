@@ -25,6 +25,8 @@ Un exemple complet de wagon est fourni dans [`examples/test_cart.bbmodel`](examp
 
 Les joueurs qui affichent les blocs de modèles doivent également avoir le mod installé. L’import sur un serveur dédié requiert les permissions opérateur.
 
+Les transferts interrompus sont automatiquement nettoyés ; le serveur limite également le nombre et la mémoire des imports simultanés.
+
 ## Formats et limites
 
 - Taille maximale d’un fichier : 8 Mio ; maximum 4 096 cubes et 32 textures PNG intégrées (2 Mio par texture, 2 048×2 048 pixels).

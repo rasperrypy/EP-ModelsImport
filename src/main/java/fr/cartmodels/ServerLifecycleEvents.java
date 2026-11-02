@@ -7,6 +7,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 public final class ServerLifecycleEvents {
     @SubscribeEvent
@@ -24,5 +25,12 @@ public final class ServerLifecycleEvents {
     @SubscribeEvent
     public void onServerStopped(ServerStoppedEvent event) {
         CartModelStore.unload(event.getServer());
+    }
+
+    @SubscribeEvent
+    public void onServerTick(ServerTickEvent.Post event) {
+        if (event.getServer().getTickCount() % 20 == 0) {
+            ModelNetwork.cleanupExpiredUploads();
+        }
     }
 }
