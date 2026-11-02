@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import fr.cartmodels.CartModels;
+import fr.cartmodels.model.CartModelInfo;
 import fr.cartmodels.model.CartModelStore;
 import fr.cartmodels.network.ModelPayloads;
 import java.util.ArrayList;
@@ -13,12 +14,15 @@ import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.HoverEvent;
 
 public final class ModelCommands {
     private static final int MODELS_PER_PAGE = 20;
@@ -59,6 +63,12 @@ public final class ModelCommands {
                 .then(Commands.argument("page", IntegerArgumentType.integer(1))
                         .executes(context -> listModels(context.getSource(),
                                 IntegerArgumentType.getInteger(context, "page")))));
+
+        event.getDispatcher().register(Commands.literal("model-info")
+                .then(Commands.argument("name", StringArgumentType.word())
+                        .suggests(MODEL_SUGGESTIONS)
+                        .executes(context -> showModelInfo(context.getSource(),
+                                StringArgumentType.getString(context, "name")))));
     }
 
     private static int giveModel(ServerPlayer player, String name, int amount,
@@ -102,8 +112,32 @@ public final class ModelCommands {
         source.sendSuccess(() -> Component.translatable(
                 "commands.cartmodels.list.header", names.size(), requestedPage, pageCount), false);
         for (String name : names.subList(start, end)) {
-            source.sendSuccess(() -> Component.literal("- " + name), false);
+            source.sendSuccess(() -> Component.literal("- " + name).withStyle(style -> style
+                    .withColor(ChatFormatting.AQUA)
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/give-model " + name))
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                            Component.translatable("commands.cartmodels.list.hover", name)))), false);
         }
         return names.size();
+    }
+
+    private static int showModelInfo(net.minecraft.commands.CommandSourceStack source, String name) {
+        String model = CartModelStore.get(source.getServer()).getModel(name);
+        if (model == null) {
+            source.sendFailure(Component.literal("No imported model named '" + name + "' exists."));
+            return 0;
+        }
+        try {
+            CartModelInfo info = CartModelInfo.inspect(model);
+            source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.header", name), false);
+            source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.cubes", info.cubeCount()), false);
+            source.sendSuccess(() -> Component.translatable(
+                    "commands.cartmodels.info.textures", info.embeddedTextureCount()), false);
+            source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.size", info.dataSizeBytes()), false);
+            return 1;
+        } catch (java.io.IOException exception) {
+            source.sendFailure(Component.literal("Could not inspect model '" + name + "': " + exception.getMessage()));
+            return 0;
+        }
     }
 }

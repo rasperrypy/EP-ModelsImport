@@ -4,5 +4,10 @@
   "commands.cartmodels.give.success": "%1$s bloc(s) du modèle « %2$s » donné(s).",
   "commands.cartmodels.list.empty": "Aucun modèle n’a encore été importé.",
   "commands.cartmodels.list.header": "%1$s modèle(s) importé(s) — page %2$s/%3$s :",
-  "commands.cartmodels.list.invalid_page": "Cette page n’existe pas. La dernière page est %1$s."
+  "commands.cartmodels.list.invalid_page": "Cette page n’existe pas. La dernière page est %1$s.",
+  "commands.cartmodels.list.hover": "Cliquer pour préparer /give-model %1$s",
+  "commands.cartmodels.info.header": "Modèle : %1$s",
+  "commands.cartmodels.info.cubes": "Cuboïdes : %1$s",
+  "commands.cartmodels.info.textures": "Textures intégrées : %1$s",
+  "commands.cartmodels.info.size": "Données stockées : %1$s octets"
 }

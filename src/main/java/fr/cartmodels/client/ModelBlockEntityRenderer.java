@@ -7,6 +7,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import fr.cartmodels.block.ModelBlockEntity;
+import fr.cartmodels.block.ModelBlock;
 import java.util.Map;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -32,6 +33,14 @@ public final class ModelBlockEntityRenderer implements BlockEntityRenderer<Model
         JsonArray cubes = model.getAsJsonArray("cubes");
         poseStack.pushPose();
         poseStack.translate(0.5D, 0.0D, 0.5D);
+        float yaw = switch (blockEntity.getBlockState().getValue(ModelBlock.FACING)) {
+            case EAST -> -90.0F;
+            case SOUTH -> 180.0F;
+            case WEST -> 90.0F;
+            default -> 0.0F;
+        };
+        poseStack.mulPose(Axis.YP.rotationDegrees(yaw));
+        poseStack.translate(-0.5D, 0.0D, -0.5D);
         for (JsonElement element : cubes) {
             if (element.isJsonObject()) {
                 renderCube(blockEntity.getModelName(), element.getAsJsonObject(), textures,

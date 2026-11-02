@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.0
+
+### Ajouts
+- Les blocs de modèle s’orientent selon la direction du joueur lors de leur pose.
+- `/model-info <nom>` affiche les cuboïdes, textures intégrées et la taille des données stockées.
+- Les noms de `/list-models` sont cliquables et préparent `/give-model`.
+
+### Compatibilité
+- Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
+
 ## 2.0.0
 
 ### Ajouts
