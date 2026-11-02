@@ -1,5 +1,26 @@
 # Changelog
 
+## 4.0.0
+
+### Nouveautés et confort d’utilisation
+- Aperçu isométrique du modèle directement dans le panneau d’import, avant tout envoi au serveur.
+- Bouton de rotation de l’aperçu pour inspecter les formes sous plusieurs angles.
+- Affichage du nombre de cuboïdes, textures intégrées et octets normalisés.
+- Validation complète du fichier côté client avant de démarrer le transfert.
+- Lecture, décodage UTF-8 et validation hors du thread graphique pour éviter les freezes.
+- Nom proposé automatiquement, nettoyé des caractères interdits, avec valeur de secours sûre.
+- Sélection multi-fichiers refusée explicitement au lieu d’ignorer silencieusement les fichiers suivants.
+- Boutons Importer/Effacer/Tourner adaptés à l’état de préparation et de transfert.
+- Import lançable avec Entrée lorsque le modèle est prêt.
+- Confirmation avant de remplacer un modèle déjà synchronisé sur le client.
+- Les fichiers invalides affichent maintenant la cause de validation.
+- Effacement de la sélection et libération de la texture d’aperçu quand le panneau se ferme.
+- Textes du panneau d’import traduits en français et en anglais.
+
+### Compatibilité
+- Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
+- Aucun changement au format des données des mondes.
+
 ## 3.5.0
 
 ### Corrections

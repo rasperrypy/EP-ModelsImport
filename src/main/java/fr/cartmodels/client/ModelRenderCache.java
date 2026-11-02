@@ -45,6 +45,10 @@ public final class ModelRenderCache {
         return MODELS.get(canonicalName(name));
     }
 
+    public static boolean contains(String name) {
+        return MODELS.containsKey(canonicalName(name));
+    }
+
     public static ResourceLocation textureLocation(String modelName, String textureId) {
         return MODEL_TEXTURES.getOrDefault(canonicalName(modelName), Map.of()).getOrDefault(textureId,
                 ResourceLocation.withDefaultNamespace("block/white_wool"));

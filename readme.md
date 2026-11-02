@@ -12,7 +12,7 @@ Mod NeoForge pour Minecraft 1.21.1 qui importe des modèles Blockbench (`.bbmode
 ## Utilisation
 
 1. Exécuter `/import-model` en tant qu’opérateur pour ouvrir le menu.
-2. Saisir un nom puis déposer un fichier `.bbmodel` ou `.json` dans la fenêtre.
+2. Saisir un nom puis déposer un seul fichier `.bbmodel` ou `.json` dans la fenêtre. Un aperçu et les statistiques du modèle apparaissent avant l’envoi.
 3. Le modèle est envoyé au serveur, validé, puis enregistré avec le monde. En solo, le serveur intégré effectue l’import et le stockage.
 4. Exécuter `/give-model <nom> [quantité]` pour obtenir le bloc correspondant (quantité de 1 à 64). Les noms sont proposés par la complétion de commande.
 5. Utiliser `/list-models [page]` pour parcourir les modèles importés, 20 par page.

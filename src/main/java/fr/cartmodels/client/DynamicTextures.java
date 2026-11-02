@@ -1,10 +1,13 @@
 package fr.cartmodels.client;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.awt.image.BufferedImage;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
+import javax.imageio.ImageIO;
 import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -27,6 +30,22 @@ public final class DynamicTextures {
         } catch (IllegalArgumentException exception) {
             LOGGER.error("Could not decode imported texture '{}' for model '{}'", textureId, modelName, exception);
             return ResourceLocation.withDefaultNamespace("block/white_wool");
+        }
+    }
+
+    public static ResourceLocation registerPreview(BufferedImage preview) throws java.io.IOException {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        ImageIO.write(preview, "png", output);
+        NativeImage image = NativeImage.read(new ByteArrayInputStream(output.toByteArray()));
+        ResourceLocation location = ResourceLocation.fromNamespaceAndPath("cartmodels",
+                "previews/" + UUID.randomUUID());
+        Minecraft.getInstance().getTextureManager().register(location, new DynamicTexture(image));
+        return location;
+    }
+
+    public static void releasePreview(ResourceLocation location) {
+        if (location != null && Minecraft.getInstance() != null) {
+            Minecraft.getInstance().getTextureManager().release(location);
         }
     }
 
