@@ -33,5 +33,14 @@
   "screen.cartmodels.import.confirm_replace": "Le modèle « %1$s » existe déjà. Confirme pour le remplacer.",
   "screen.cartmodels.import.uploading": "Envoi du modèle…",
   "screen.cartmodels.import.preparing": "Préparation…",
-  "screen.cartmodels.import.upload_failed": "Impossible de démarrer l’envoi : %1$s"
+  "screen.cartmodels.import.upload_failed": "Impossible de démarrer l’envoi : %1$s",
+  "screen.cartmodels.import.seats": "Sièges : %1$s/%2$s",
+  "screen.cartmodels.import.seats_too_large": "Les sièges font dépasser la limite de 8 Mio.",
+  "screen.cartmodels.import.seat_limit": "Un modèle peut contenir au maximum 64 sièges.",
+  "seat.cartmodels.none": "Ce modèle n’a pas de sièges. Sélectionne des voxels dans l’aperçu d’import.",
+  "seat.cartmodels.full": "Tous les sièges de ce modèle sont occupés.",
+  "seat.cartmodels.entered": "Tu as pris le siège %1$s. Accroupis-toi pour descendre.",
+  "seat.cartmodels.failed": "Impossible de te placer sur ce siège.",
+  "seat.cartmodels.model_missing": "Les données de ce modèle ne sont pas disponibles.",
+  "screen.cartmodels.import.seats_hint": "Clique sur les marqueurs pour activer/désactiver les sièges"
 }

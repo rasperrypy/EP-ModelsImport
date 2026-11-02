@@ -1,5 +1,20 @@
 # Changelog
 
+## 5.0.0
+
+### Sièges sélectionnables
+- Sélection de voxels de 16×16×16 pixels directement sur l’aperçu du modèle ; les marqueurs distinguent les voxels sélectionnés.
+- Jusqu’à 64 emplacements par modèle, stockés avec les données importées et synchronisés avec les clients.
+- Clic droit sur le bloc du modèle pour prendre le premier siège libre ; accroupissement pour descendre.
+- Les sièges suivent l’orientation du bloc et plusieurs joueurs peuvent occuper les différents sièges.
+- Les modèles sans siège restent inchangés et affichent un message explicatif à l’interaction.
+- Validation serveur des coordonnées et de leur chevauchement avec la géométrie du modèle.
+- Les ancres invisibles de siège disparaissent lorsqu’elles sont inoccupées ou que leur bloc support est retiré.
+
+### Compatibilité
+- Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
+- Les anciens modèles sont lus sans modification et n’ont aucun siège par défaut.
+
 ## 4.0.0
 
 ### Nouveautés et confort d’utilisation

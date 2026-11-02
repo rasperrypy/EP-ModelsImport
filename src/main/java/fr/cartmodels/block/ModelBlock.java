@@ -1,7 +1,14 @@
 package fr.cartmodels.block;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.serialization.MapCodec;
 import fr.cartmodels.CartModels;
+import fr.cartmodels.entity.CartSeatEntity;
+import fr.cartmodels.model.CartModelStore;
+import fr.cartmodels.model.ModelSeat;
+import java.io.IOException;
+import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
@@ -20,6 +27,11 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -48,6 +60,83 @@ public final class ModelBlock extends BaseEntityBlock {
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext context) {
         return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
+    }
+
+    @Override
+    protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player,
+                                                BlockHitResult hitResult) {
+        if (level.isClientSide) {
+            return InteractionResult.SUCCESS;
+        }
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (!(blockEntity instanceof ModelBlockEntity modelBlockEntity)
+                || modelBlockEntity.getModelName().isBlank()) {
+            return InteractionResult.PASS;
+        }
+        String stored = CartModelStore.get(level.getServer()).getModel(modelBlockEntity.getModelName());
+        if (stored == null) {
+            player.displayClientMessage(Component.translatable("seat.cartmodels.model_missing"), true);
+            return InteractionResult.CONSUME;
+        }
+        try {
+            JsonObject model = JsonParser.parseString(stored).getAsJsonObject();
+            List<ModelSeat> seats = ModelSeat.read(model.get("seats"));
+            if (seats.isEmpty()) {
+                player.displayClientMessage(Component.translatable("seat.cartmodels.none"), true);
+                return InteractionResult.CONSUME;
+            }
+            for (int index = 0; index < seats.size(); index++) {
+                int seatIndex = index;
+                ModelSeat seat = seats.get(index);
+                double[] local = rotateSeat(seat, state.getValue(FACING));
+                double seatX = pos.getX() + local[0];
+                double seatY = pos.getY() + local[1];
+                double seatZ = pos.getZ() + local[2];
+                boolean occupied = level.getEntitiesOfClass(CartSeatEntity.class,
+                        new net.minecraft.world.phys.AABB(seatX - 0.4, seatY - 0.4, seatZ - 0.4,
+                                seatX + 0.4, seatY + 0.4, seatZ + 0.4),
+                        anchorEntity -> anchorEntity.getAnchorPos().equals(pos)
+                                && anchorEntity.getSeatIndex() == seatIndex
+                                && !anchorEntity.getPassengers().isEmpty()).size() > 0;
+                if (occupied) {
+                    continue;
+                }
+                CartSeatEntity anchor = CartModels.CART_SEAT.get().create(level);
+                if (anchor == null) {
+                    throw new IllegalStateException("Could not create a seat anchor entity.");
+                }
+                anchor.setSeat(pos, index);
+                anchor.setPos(pos.getX() + local[0], pos.getY() + local[1], pos.getZ() + local[2]);
+                anchor.setYRot(state.getValue(FACING).toYRot());
+                if (!level.addFreshEntity(anchor)) {
+                    player.displayClientMessage(Component.translatable("seat.cartmodels.failed"), true);
+                    return InteractionResult.CONSUME;
+                }
+                if (player.startRiding(anchor, true)) {
+                    player.displayClientMessage(Component.translatable("seat.cartmodels.entered", index + 1), true);
+                } else {
+                    anchor.discard();
+                    player.displayClientMessage(Component.translatable("seat.cartmodels.failed"), true);
+                }
+                return InteractionResult.CONSUME;
+            }
+            player.displayClientMessage(Component.translatable("seat.cartmodels.full"), true);
+        } catch (IOException | IllegalStateException | com.google.gson.JsonSyntaxException exception) {
+            player.displayClientMessage(Component.translatable("seat.cartmodels.invalid"), true);
+        }
+        return InteractionResult.CONSUME;
+    }
+
+    private static double[] rotateSeat(ModelSeat seat, Direction facing) {
+        double x = seat.x() + 0.5;
+        double y = seat.y() + 1.0;
+        double z = seat.z() + 0.5;
+        return switch (facing) {
+            case EAST -> new double[]{1.0 - z, y, x};
+            case SOUTH -> new double[]{1.0 - x, y, 1.0 - z};
+            case WEST -> new double[]{z, y, 1.0 - x};
+            default -> new double[]{x, y, z};
+        };
     }
 
     @Override

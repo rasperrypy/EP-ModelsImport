@@ -13,6 +13,7 @@ import java.nio.ByteBuffer;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.imageio.ImageIO;
@@ -83,11 +84,48 @@ public final class CartModelParser {
 
         output.add("cubes", cubes);
         output.add("textures", textures);
+        output.add("seats", readSeats(source, elements));
         String normalized = output.toString();
         if (normalized.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_FILE_BYTES) {
             throw new IOException("The normalized model exceeds the 8 MiB synchronization limit.");
         }
         return normalized;
+    }
+
+    private static JsonArray readSeats(JsonObject source, JsonArray elements) throws IOException {
+        List<ModelSeat> seats = ModelSeat.read(source.get("cartmodels_seats"));
+        JsonArray result = new JsonArray();
+        for (ModelSeat seat : seats) {
+            boolean overlapsModel = false;
+            for (JsonElement element : elements) {
+                if (!element.isJsonObject()) {
+                    continue;
+                }
+                JsonObject cube = element.getAsJsonObject();
+                JsonArray from = cube.getAsJsonArray("from");
+                JsonArray to = cube.getAsJsonArray("to");
+                if (from == null || to == null || from.size() != 3 || to.size() != 3) {
+                    continue;
+                }
+                double x0 = from.get(0).getAsDouble();
+                double y0 = from.get(1).getAsDouble();
+                double z0 = from.get(2).getAsDouble();
+                double x1 = to.get(0).getAsDouble();
+                double y1 = to.get(1).getAsDouble();
+                double z1 = to.get(2).getAsDouble();
+                if (x1 > seat.x() * 16.0 && x0 < (seat.x() + 1) * 16.0
+                        && y1 > seat.y() * 16.0 && y0 < (seat.y() + 1) * 16.0
+                        && z1 > seat.z() * 16.0 && z0 < (seat.z() + 1) * 16.0) {
+                    overlapsModel = true;
+                    break;
+                }
+            }
+            if (!overlapsModel) {
+                throw new IOException("Seat voxel " + seat + " does not overlap a model cuboid.");
+            }
+            result.add(seat.toJson());
+        }
+        return result;
     }
 
     private static void readBlockbenchTextures(JsonObject source, JsonObject textures, Map<String, String> textureIds)

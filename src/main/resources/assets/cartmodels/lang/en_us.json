@@ -33,5 +33,14 @@
   "screen.cartmodels.import.confirm_replace": "Model '%1$s' already exists. Confirm to replace it.",
   "screen.cartmodels.import.uploading": "Uploading model…",
   "screen.cartmodels.import.preparing": "Preparing…",
-  "screen.cartmodels.import.upload_failed": "Could not start upload: %1$s"
+  "screen.cartmodels.import.upload_failed": "Could not start upload: %1$s",
+  "screen.cartmodels.import.seats": "Seats: %1$s/%2$s",
+  "screen.cartmodels.import.seats_too_large": "Seat data makes this file exceed the 8 MiB limit.",
+  "screen.cartmodels.import.seat_limit": "A model can have at most 64 seats.",
+  "seat.cartmodels.none": "This model has no seats. Select seat voxels in the import preview.",
+  "seat.cartmodels.full": "All seats on this model are occupied.",
+  "seat.cartmodels.entered": "You took seat %1$s. Sneak to get out.",
+  "seat.cartmodels.failed": "Could not place you in that seat.",
+  "seat.cartmodels.model_missing": "The data for this model is not available.",
+  "screen.cartmodels.import.seats_hint": "Click voxel markers to toggle passenger seats"
 }

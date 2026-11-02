@@ -9,7 +9,11 @@ import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import fr.cartmodels.model.ModelSeat;
 
 public final class ModelPreviewRenderer {
     private static final int SIZE = 128;
@@ -22,6 +26,11 @@ public final class ModelPreviewRenderer {
     }
 
     public static BufferedImage render(JsonObject model, int rotationStep) {
+        return render(model, rotationStep, List.of(), false);
+    }
+
+    public static BufferedImage render(JsonObject model, int rotationStep, List<ModelSeat> selectedSeats,
+                                       boolean showSeatVoxels) {
         BufferedImage image = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D graphics = image.createGraphics();
         try {
@@ -97,10 +106,123 @@ public final class ModelPreviewRenderer {
                 graphics.setColor(new Color(0x263244));
                 graphics.draw(polygon);
             }
+            if (showSeatVoxels) {
+                for (Map.Entry<ModelSeat, double[]> entry : projectVoxels(model, rotationStep).entrySet()) {
+                    double[] point = entry.getValue();
+                    int x = (int) Math.round(point[0]);
+                    int y = (int) Math.round(point[1]);
+                    boolean selected = selectedSeats.contains(entry.getKey());
+                    graphics.setColor(selected ? new Color(0xFFFFC857) : new Color(0xFF31D6B0));
+                    graphics.fillOval(x - 4, y - 4, 9, 9);
+                    graphics.setColor(new Color(0xFF17212B));
+                    graphics.drawOval(x - 4, y - 4, 9, 9);
+                }
+            }
         } finally {
             graphics.dispose();
         }
         return image;
+    }
+
+    public static List<ModelSeat> seatVoxels(JsonObject model) {
+        LinkedHashSet<ModelSeat> voxels = new LinkedHashSet<>();
+        JsonArray cubes = model.getAsJsonArray("cubes");
+        for (var element : cubes) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject cube = element.getAsJsonObject();
+            double[] from = vector(cube.getAsJsonArray("from"));
+            double[] to = vector(cube.getAsJsonArray("to"));
+            if (from == null || to == null) {
+                continue;
+            }
+            int minX = (int) Math.floor(from[0] / 16.0);
+            int minY = (int) Math.floor(from[1] / 16.0);
+            int minZ = (int) Math.floor(from[2] / 16.0);
+            int maxX = (int) Math.ceil(to[0] / 16.0) - 1;
+            int maxY = (int) Math.ceil(to[1] / 16.0) - 1;
+            int maxZ = (int) Math.ceil(to[2] / 16.0) - 1;
+            for (int x = minX; x <= maxX && voxels.size() < 4_096; x++) {
+                for (int y = minY; y <= maxY && voxels.size() < 4_096; y++) {
+                    for (int z = minZ; z <= maxZ && voxels.size() < 4_096; z++) {
+                        if (x >= -128 && x <= 127 && y >= -128 && y <= 127 && z >= -128 && z <= 127) {
+                            voxels.add(new ModelSeat(x, y, z));
+                        }
+                    }
+                }
+            }
+            if (voxels.size() >= 4_096) {
+                break;
+            }
+        }
+        return List.copyOf(voxels);
+    }
+
+    public static ModelSeat voxelAt(JsonObject model, int rotationStep, double previewX, double previewY) {
+        ModelSeat closest = null;
+        double closestDistance = 11.0 * 11.0;
+        for (Map.Entry<ModelSeat, double[]> entry : projectVoxels(model, rotationStep).entrySet()) {
+            double dx = previewX - entry.getValue()[0];
+            double dy = previewY - entry.getValue()[1];
+            double distance = dx * dx + dy * dy;
+            if (distance < closestDistance) {
+                closest = entry.getKey();
+                closestDistance = distance;
+            }
+        }
+        return closest;
+    }
+
+    private static Map<ModelSeat, double[]> projectVoxels(JsonObject model, int rotationStep) {
+        Map<ModelSeat, double[]> projected = new LinkedHashMap<>();
+        JsonArray cubes = model.getAsJsonArray("cubes");
+        List<double[][]> vertices = new ArrayList<>();
+        double minX = Double.POSITIVE_INFINITY;
+        double minY = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY;
+        double maxY = Double.NEGATIVE_INFINITY;
+        double radians = Math.toRadians(45.0 + rotationStep * 45.0);
+        double sin = Math.sin(radians);
+        double cos = Math.cos(radians);
+        for (var element : cubes) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject cube = element.getAsJsonObject();
+            double[] from = vector(cube.getAsJsonArray("from"));
+            double[] to = vector(cube.getAsJsonArray("to"));
+            if (from == null || to == null) {
+                continue;
+            }
+            double[][] cubeVertices = transformCube(cube, from, to);
+            vertices.add(cubeVertices);
+            for (double[] vertex : cubeVertices) {
+                double cameraX = vertex[0] * cos - vertex[2] * sin;
+                double cameraDepth = vertex[0] * sin + vertex[2] * cos;
+                minX = Math.min(minX, cameraX);
+                maxX = Math.max(maxX, cameraX);
+                minY = Math.min(minY, cameraDepth * 0.5 - vertex[1]);
+                maxY = Math.max(maxY, cameraDepth * 0.5 - vertex[1]);
+            }
+        }
+        if (vertices.isEmpty()) {
+            return projected;
+        }
+        double scale = Math.min((SIZE - 20.0) / Math.max(1.0, maxX - minX),
+                (SIZE - 20.0) / Math.max(1.0, maxY - minY));
+        double centerX = (minX + maxX) * 0.5;
+        double centerY = (minY + maxY) * 0.5;
+        for (ModelSeat voxel : seatVoxels(model)) {
+            double[] center = {(voxel.x() + 0.5) * 16.0, (voxel.y() + 0.5) * 16.0,
+                    (voxel.z() + 0.5) * 16.0};
+            double cameraX = center[0] * cos - center[2] * sin;
+            double cameraDepth = center[0] * sin + center[2] * cos;
+            double screenX = SIZE * 0.5 + (cameraX - centerX) * scale;
+            double screenY = SIZE * 0.5 + (cameraDepth * 0.5 - center[1] - centerY) * scale;
+            projected.put(voxel, new double[]{screenX, screenY});
+        }
+        return projected;
     }
 
     private static double[][] transformCube(JsonObject cube, double[] from, double[] to) {

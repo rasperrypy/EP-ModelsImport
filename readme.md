@@ -13,10 +13,11 @@ Mod NeoForge pour Minecraft 1.21.1 qui importe des modèles Blockbench (`.bbmode
 
 1. Exécuter `/import-model` en tant qu’opérateur pour ouvrir le menu.
 2. Saisir un nom puis déposer un seul fichier `.bbmodel` ou `.json` dans la fenêtre. Un aperçu et les statistiques du modèle apparaissent avant l’envoi.
-3. Le modèle est envoyé au serveur, validé, puis enregistré avec le monde. En solo, le serveur intégré effectue l’import et le stockage.
-4. Exécuter `/give-model <nom> [quantité]` pour obtenir le bloc correspondant (quantité de 1 à 64). Les noms sont proposés par la complétion de commande.
-5. Utiliser `/list-models [page]` pour parcourir les modèles importés, 20 par page.
-6. Utiliser `/model-info <nom>` pour consulter le nombre de cuboïdes, les textures et la taille stockée.
+3. Cliquer sur les marqueurs de voxels (cellules de 16×16×16 pixels Blockbench) qui doivent devenir des sièges. Les marqueurs ambrés sont sélectionnés ; jusqu’à 64 sièges peuvent être définis. Dans le jeu, cliquer droit sur le bloc pour prendre une place libre et s’accroupir pour descendre.
+4. Le modèle est envoyé au serveur, validé, puis enregistré avec le monde. En solo, le serveur intégré effectue l’import et le stockage.
+5. Exécuter `/give-model <nom> [quantité]` pour obtenir le bloc correspondant (quantité de 1 à 64). Les noms sont proposés par la complétion de commande.
+6. Utiliser `/list-models [page]` pour parcourir les modèles importés, 20 par page.
+7. Utiliser `/model-info <nom>` pour consulter le nombre de cuboïdes, les textures et la taille stockée.
 
 Importer à nouveau un modèle sous un nom existant le remplace et actualise son rendu sur les clients connectés.
 Les blocs orientent automatiquement le modèle selon la direction du joueur lors de la pose. Dans `/list-models`, cliquer sur un nom prépare la commande `/give-model` correspondante.

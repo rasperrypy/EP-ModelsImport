@@ -4,7 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonParser;
+import fr.cartmodels.model.ModelSeat;
 import java.awt.image.BufferedImage;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ModelPreviewRendererTest {
@@ -28,6 +30,23 @@ class ModelPreviewRendererTest {
         assertEquals(128, northEast.getHeight());
         assertTrue(countOpaquePixels(northEast) > 100);
         assertTrue(countDifferentPixels(northEast, southWest) > 20);
+    }
+
+    @Test
+    void exposesSelectableVoxelsAndMapsPreviewClicksBackToTheirCoordinates() {
+        var model = JsonParser.parseString("""
+                {
+                  "cubes": [{
+                    "from": [0, 0, 0],
+                    "to": [16, 16, 16],
+                    "faces": {}
+                  }],
+                  "textures": {}
+                }
+                """).getAsJsonObject();
+
+        assertEquals(List.of(new ModelSeat(0, 0, 0)), ModelPreviewRenderer.seatVoxels(model));
+        assertEquals(new ModelSeat(0, 0, 0), ModelPreviewRenderer.voxelAt(model, 0, 64, 64));
     }
 
     private static int countOpaquePixels(BufferedImage image) {

@@ -43,6 +43,7 @@ class CartModelParserTest {
 
         assertTrue(model.contains("\"cubes\":[{"));
         assertTrue(model.contains("\"texture\":\"\""));
+        assertTrue(model.contains("\"seats\":[]"));
     }
 
     @Test
@@ -81,6 +82,27 @@ class CartModelParserTest {
                 () -> CartModelParser.parse("mesh.bbmodel", input));
 
         assertTrue(exception.getMessage().contains("cube elements"));
+    }
+
+    @Test
+    void acceptsSeatVoxelsThatOverlapTheModelAndRejectsSeatsOutsideIt() throws Exception {
+        String input = """
+                {
+                  "cartmodels_seats": [[0, 0, 0]],
+                  "elements": [{
+                    "from": [0, 0, 0],
+                    "to": [16, 16, 16],
+                    "faces": {"north": {"texture": "missing"}}
+                  }]
+                }
+                """;
+
+        String parsed = CartModelParser.parse("seat.json", input);
+
+        assertTrue(parsed.contains("\"seats\":[[0,0,0]]"));
+        IOException exception = assertThrows(IOException.class, () -> CartModelParser.parse("seat.json",
+                input.replace("[[0, 0, 0]]", "[[1, 0, 0]]")));
+        assertTrue(exception.getMessage().contains("does not overlap"));
     }
 
     private static byte[] tinyPng() throws IOException {

@@ -16,6 +16,7 @@ public final class ClientModEvents {
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(CartModels.MODEL_BLOCK_ENTITY.get(), ModelBlockEntityRenderer::new);
+        event.registerEntityRenderer(CartModels.CART_SEAT.get(), CartSeatRenderer::new);
     }
 
     @SubscribeEvent

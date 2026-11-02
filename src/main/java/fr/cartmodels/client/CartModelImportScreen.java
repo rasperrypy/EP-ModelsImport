@@ -1,12 +1,14 @@
 package fr.cartmodels.client;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import java.awt.image.BufferedImage;
 import fr.cartmodels.model.CartModelInfo;
 import fr.cartmodels.model.CartModelParser;
 import fr.cartmodels.model.CartModelStore;
+import fr.cartmodels.model.ModelSeat;
 import fr.cartmodels.network.ModelNetwork;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -16,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import net.minecraft.client.Minecraft;
@@ -40,6 +43,7 @@ public final class CartModelImportScreen extends Screen {
     private boolean loading;
     private boolean uploading;
     private boolean replacementConfirmation;
+    private final List<ModelSeat> selectedSeats = new ArrayList<>();
     private int previewRotation;
     private int cubeCount;
     private int textureCount;
@@ -135,6 +139,7 @@ public final class CartModelImportScreen extends Screen {
                     try {
                         selectedBytes = preview.bytes();
                         previewModel = preview.model();
+                        selectedSeats.clear();
                         cubeCount = preview.info().cubeCount();
                         textureCount = preview.info().embeddedTextureCount();
                         dataSize = preview.info().dataSizeBytes();
@@ -166,7 +171,7 @@ public final class CartModelImportScreen extends Screen {
                     .decode(ByteBuffer.wrap(bytes)).toString();
             String normalized = CartModelParser.parse(fileName, contents);
             JsonObject model = JsonParser.parseString(normalized).getAsJsonObject();
-            BufferedImage image = ModelPreviewRenderer.render(model, rotation);
+            BufferedImage image = ModelPreviewRenderer.render(model, rotation, List.of(), true);
             return new PreviewData(bytes, model, CartModelInfo.inspect(normalized), image);
         } catch (IOException | IllegalStateException | JsonSyntaxException | IllegalArgumentException exception) {
             throw new CompletionException(exception);
@@ -203,7 +208,17 @@ public final class CartModelImportScreen extends Screen {
             return;
         }
         try {
-            ModelNetwork.uploadModel(name, selectedFile.getFileName().toString(), selectedBytes);
+            JsonObject source = JsonParser.parseString(new String(selectedBytes, StandardCharsets.UTF_8))
+                    .getAsJsonObject();
+            JsonArray seats = new JsonArray();
+            selectedSeats.forEach(seat -> seats.add(seat.toJson()));
+            source.add("cartmodels_seats", seats);
+            byte[] uploadBytes = source.toString().getBytes(StandardCharsets.UTF_8);
+            if (uploadBytes.length > CartModelParser.MAX_FILE_BYTES) {
+                setLocalStatus(Component.translatable("screen.cartmodels.import.seats_too_large"), false);
+                return;
+            }
+            ModelNetwork.uploadModel(name, selectedFile.getFileName().toString(), uploadBytes);
             uploading = true;
             setLocalStatus(Component.translatable("screen.cartmodels.import.uploading"), true);
             updateButtonState();
@@ -221,7 +236,7 @@ public final class CartModelImportScreen extends Screen {
         previewRotation++;
         try {
             ResourceLocation nextTexture = DynamicTextures.registerPreview(
-                    ModelPreviewRenderer.render(previewModel, previewRotation));
+                    ModelPreviewRenderer.render(previewModel, previewRotation, selectedSeats, true));
             releasePreview();
             previewTexture = nextTexture;
         } catch (IOException exception) {
@@ -235,6 +250,7 @@ public final class CartModelImportScreen extends Screen {
         selectedFile = null;
         selectedBytes = null;
         previewModel = null;
+        selectedSeats.clear();
         cubeCount = 0;
         textureCount = 0;
         dataSize = 0;
@@ -298,6 +314,8 @@ public final class CartModelImportScreen extends Screen {
         graphics.drawCenteredString(font, title, width / 2, 15, 0xFFFFFF);
         graphics.drawCenteredString(font, Component.translatable("screen.cartmodels.import.drop_hint"),
                 width / 2, 32, 0xD0D0D0);
+        graphics.drawCenteredString(font, Component.translatable("screen.cartmodels.import.seats_hint"),
+                width / 2, 43, 0xFFFFC857);
         graphics.fill(panelX - 1, panelY - 1, panelX + 113, panelY + 113, 0xFF59616B);
         graphics.fill(panelX, panelY, panelX + 112, panelY + 112, 0xFF20252B);
         if (previewTexture != null) {
@@ -322,6 +340,9 @@ public final class CartModelImportScreen extends Screen {
                     infoX, panelY + 78, 0xFFE2E8F0);
             graphics.drawString(font, Component.translatable("screen.cartmodels.import.bytes", dataSize),
                     infoX, panelY + 91, 0xFFE2E8F0);
+            graphics.drawString(font, Component.translatable(
+                    "screen.cartmodels.import.seats", selectedSeats.size(), ModelSeat.MAX_SEATS),
+                    infoX, panelY + 104, 0xFFFFC857);
         }
         int statusColor = statusSuccess ? 0xFF80FF80 : 0xFFFF8080;
         graphics.drawCenteredString(font, font.plainSubstrByWidth(status.getString(), width - 18),
@@ -335,6 +356,51 @@ public final class CartModelImportScreen extends Screen {
         releasePreview();
         if (minecraft != null) {
             minecraft.setScreen(null);
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (button == 0 && previewModel != null) {
+            int panelX = width / 2 - 145;
+            int panelY = Math.max(48, height / 2 - 62);
+            double previewLeft = panelX + 2.0;
+            double previewTop = panelY + 2.0;
+            if (mouseX >= previewLeft && mouseX < previewLeft + 108
+                    && mouseY >= previewTop && mouseY < previewTop + 108) {
+                ModelSeat voxel = ModelPreviewRenderer.voxelAt(previewModel, previewRotation,
+                        (mouseX - previewLeft) * 128.0 / 108.0,
+                        (mouseY - previewTop) * 128.0 / 108.0);
+                if (voxel != null) {
+                    if (!selectedSeats.remove(voxel)) {
+                        if (selectedSeats.size() == ModelSeat.MAX_SEATS) {
+                            setLocalStatus(Component.translatable("screen.cartmodels.import.seat_limit"), false);
+                        } else {
+                            selectedSeats.add(voxel);
+                        }
+                    }
+                    replacementConfirmation = false;
+                    refreshPreview();
+                    updateButtonState();
+                    return true;
+                }
+            }
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void refreshPreview() {
+        if (previewModel == null) {
+            return;
+        }
+        try {
+            ResourceLocation nextTexture = DynamicTextures.registerPreview(
+                    ModelPreviewRenderer.render(previewModel, previewRotation, selectedSeats, true));
+            releasePreview();
+            previewTexture = nextTexture;
+        } catch (IOException exception) {
+            setLocalStatus(Component.translatable("screen.cartmodels.import.preview_failed",
+                    exception.getMessage()), false);
         }
     }
 
