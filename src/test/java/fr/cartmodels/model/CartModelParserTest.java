@@ -100,8 +100,32 @@ class CartModelParserTest {
         String parsed = CartModelParser.parse("seat.json", input);
 
         assertTrue(parsed.contains("\"seats\":[[0,0,0]]"));
+        assertTrue(parsed.contains("\"seatVoxelSize\":16"));
         IOException exception = assertThrows(IOException.class, () -> CartModelParser.parse("seat.json",
                 input.replace("[[0, 0, 0]]", "[[1, 0, 0]]")));
+        assertTrue(exception.getMessage().contains("does not overlap"));
+    }
+
+    @Test
+    void acceptsModelPixelSeatVoxelsAndRejectsAnAdjacentVoxel() throws Exception {
+        String input = """
+                {
+                  "cartmodels_seat_voxel_size": 1,
+                  "cartmodels_seats": [[4, 5, 6]],
+                  "elements": [{
+                    "from": [4, 5, 6],
+                    "to": [5, 6, 7],
+                    "faces": {"north": {"texture": "missing"}}
+                  }]
+                }
+                """;
+
+        String parsed = CartModelParser.parse("seat.json", input);
+
+        assertTrue(parsed.contains("\"seatVoxelSize\":1"));
+        assertTrue(parsed.contains("\"seats\":[[4,5,6]]"));
+        IOException exception = assertThrows(IOException.class, () -> CartModelParser.parse("seat.json",
+                input.replace("[[4, 5, 6]]", "[[5, 5, 6]]")));
         assertTrue(exception.getMessage().contains("does not overlap"));
     }
 

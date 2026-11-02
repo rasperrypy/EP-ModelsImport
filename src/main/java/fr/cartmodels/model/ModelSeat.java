@@ -8,14 +8,25 @@ import java.util.List;
 
 public record ModelSeat(int x, int y, int z) {
     public static final int MAX_SEATS = 64;
+    public static final int MODEL_VOXEL_SIZE = 1;
+    public static final int LEGACY_VOXEL_SIZE = 16;
 
     public static List<ModelSeat> read(JsonElement element) throws IOException {
+        return read(element, LEGACY_VOXEL_SIZE);
+    }
+
+    public static List<ModelSeat> read(JsonElement element, int voxelSize) throws IOException {
+        if (voxelSize != MODEL_VOXEL_SIZE && voxelSize != LEGACY_VOXEL_SIZE) {
+            throw new IOException("Unsupported seat voxel size.");
+        }
         if (element == null) {
             return List.of();
         }
         if (!element.isJsonArray() || element.getAsJsonArray().size() > MAX_SEATS) {
             throw new IOException("A model can define at most 64 seats.");
         }
+        int minimum = voxelSize == MODEL_VOXEL_SIZE ? -2_048 : -128;
+        int maximum = voxelSize == MODEL_VOXEL_SIZE ? 2_047 : 127;
         List<ModelSeat> seats = new ArrayList<>();
         for (JsonElement seatElement : element.getAsJsonArray()) {
             if (!seatElement.isJsonArray()) {
@@ -32,7 +43,7 @@ public record ModelSeat(int x, int y, int z) {
                     throw new IOException("Seat coordinates must be integers.");
                 }
                 double value = coordinate.getAsDouble();
-                if (value != Math.rint(value) || value < -128 || value > 127) {
+                if (value != Math.rint(value) || value < minimum || value > maximum) {
                     throw new IOException("Seat voxels must be within the supported model range.");
                 }
                 values[index] = (int) value;

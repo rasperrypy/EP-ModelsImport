@@ -44,6 +44,7 @@ public final class CartModelImportScreen extends Screen {
     private boolean replacementConfirmation;
     private boolean previewDragging;
     private boolean previewDragMoved;
+    private Integer previousMenuBackgroundBlurriness;
     private final List<ModelSeat> selectedSeats = new ArrayList<>();
     private ModelSeat hoveredSeat;
     private double previewYaw = 45.0;
@@ -61,6 +62,7 @@ public final class CartModelImportScreen extends Screen {
 
     @Override
     protected void init() {
+        disableMenuBackgroundBlur();
         int panelX = width / 2 - 145;
         int panelY = Math.max(48, height / 2 - 62);
         int infoX = panelX + 122;
@@ -215,6 +217,8 @@ public final class CartModelImportScreen extends Screen {
             JsonArray seats = new JsonArray();
             selectedSeats.forEach(seat -> seats.add(seat.toJson()));
             source.add("cartmodels_seats", seats);
+            source.addProperty("cartmodels_seat_voxel_size", ModelSeat.MODEL_VOXEL_SIZE);
+            source.addProperty("cartmodels_seat_voxel_size", ModelSeat.MODEL_VOXEL_SIZE);
             byte[] uploadBytes = source.toString().getBytes(StandardCharsets.UTF_8);
             if (uploadBytes.length > CartModelParser.MAX_FILE_BYTES) {
                 setLocalStatus(Component.translatable("screen.cartmodels.import.seats_too_large"), false);
@@ -273,6 +277,18 @@ public final class CartModelImportScreen extends Screen {
         previewTexture = null;
     }
 
+    private void disableMenuBackgroundBlur() {
+        if (minecraft == null) {
+            return;
+        }
+        if (previousMenuBackgroundBlurriness == null) {
+            previousMenuBackgroundBlurriness = minecraft.options.getMenuBackgroundBlurriness();
+        }
+        if (minecraft.options.getMenuBackgroundBlurriness() != 0) {
+            minecraft.options.menuBackgroundBlurriness().set(0);
+        }
+    }
+
     private void updateButtonState() {
         if (importButton != null) {
             importButton.active = selectedBytes != null && !loading && !uploading;
@@ -315,6 +331,7 @@ public final class CartModelImportScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        disableMenuBackgroundBlur();
         graphics.fill(0, 0, width, height, 0x99000000);
         int panelX = width / 2 - 145;
         int panelY = Math.max(48, height / 2 - 62);
@@ -366,6 +383,15 @@ public final class CartModelImportScreen extends Screen {
         if (minecraft != null) {
             minecraft.setScreen(null);
         }
+    }
+
+    @Override
+    public void removed() {
+        if (minecraft != null && previousMenuBackgroundBlurriness != null) {
+            minecraft.options.menuBackgroundBlurriness().set(previousMenuBackgroundBlurriness);
+            previousMenuBackgroundBlurriness = null;
+        }
+        super.removed();
     }
 
     @Override

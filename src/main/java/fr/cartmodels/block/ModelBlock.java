@@ -80,7 +80,9 @@ public final class ModelBlock extends BaseEntityBlock {
         }
         try {
             JsonObject model = JsonParser.parseString(stored).getAsJsonObject();
-            List<ModelSeat> seats = ModelSeat.read(model.get("seats"));
+            int voxelSize = model.has("seatVoxelSize")
+                    ? model.get("seatVoxelSize").getAsInt() : ModelSeat.LEGACY_VOXEL_SIZE;
+            List<ModelSeat> seats = ModelSeat.read(model.get("seats"), voxelSize);
             if (seats.isEmpty()) {
                 player.displayClientMessage(Component.translatable("seat.cartmodels.none"), true);
                 return InteractionResult.CONSUME;
@@ -88,7 +90,7 @@ public final class ModelBlock extends BaseEntityBlock {
             for (int index = 0; index < seats.size(); index++) {
                 int seatIndex = index;
                 ModelSeat seat = seats.get(index);
-                double[] local = rotateSeat(seat, state.getValue(FACING));
+                double[] local = rotateSeat(seat, voxelSize, state.getValue(FACING));
                 double seatX = pos.getX() + local[0];
                 double seatY = pos.getY() + local[1];
                 double seatZ = pos.getZ() + local[2];
@@ -127,10 +129,11 @@ public final class ModelBlock extends BaseEntityBlock {
         return InteractionResult.CONSUME;
     }
 
-    private static double[] rotateSeat(ModelSeat seat, Direction facing) {
-        double x = seat.x() + 0.5;
-        double y = seat.y() + 1.0;
-        double z = seat.z() + 0.5;
+    private static double[] rotateSeat(ModelSeat seat, int voxelSize, Direction facing) {
+        double scale = voxelSize / 16.0;
+        double x = (seat.x() + 0.5) * scale;
+        double y = (seat.y() + 1.0) * scale;
+        double z = (seat.z() + 0.5) * scale;
         return switch (facing) {
             case EAST -> new double[]{1.0 - z, y, x};
             case SOUTH -> new double[]{1.0 - x, y, 1.0 - z};

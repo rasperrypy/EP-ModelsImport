@@ -39,7 +39,7 @@ class ModelPreviewRendererTest {
                 {
                   "cubes": [{
                     "from": [0, 0, 0],
-                    "to": [16, 16, 16],
+                    "to": [1, 1, 1],
                     "faces": {}
                   }],
                   "textures": {}
@@ -51,12 +51,29 @@ class ModelPreviewRendererTest {
     }
 
     @Test
+    void exposesEachModelPixelAsItsOwnSelectableVoxel() {
+        var model = JsonParser.parseString("""
+                {
+                  "cubes": [{
+                    "from": [0, 0, 0],
+                    "to": [2, 1, 1],
+                    "faces": {}
+                  }],
+                  "textures": {}
+                }
+                """).getAsJsonObject();
+
+        assertEquals(List.of(new ModelSeat(0, 0, 0), new ModelSeat(1, 0, 0)),
+                ModelPreviewRenderer.seatVoxels(model));
+    }
+
+    @Test
     void rendersPerspectivePreviewAndPicksTheVoxelUnderTheCameraRay() {
         var model = JsonParser.parseString("""
                 {
                   "cubes": [{
                     "from": [0, 0, 0],
-                    "to": [16, 16, 16],
+                    "to": [1, 1, 1],
                     "faces": {}
                   }],
                   "textures": {}
@@ -78,8 +95,8 @@ class ModelPreviewRendererTest {
         var model = JsonParser.parseString("""
                 {
                   "cubes": [
-                    {"from": [0, 0, 0], "to": [16, 16, 16], "faces": {}},
-                    {"from": [0, 0, 16], "to": [16, 16, 32], "faces": {}}
+                    {"from": [0, 0, 0], "to": [1, 1, 1], "faces": {}},
+                    {"from": [0, 0, 1], "to": [1, 1, 2], "faces": {}}
                   ],
                   "textures": {}
                 }

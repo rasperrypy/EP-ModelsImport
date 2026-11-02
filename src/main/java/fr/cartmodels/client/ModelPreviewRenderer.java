@@ -197,9 +197,9 @@ public final class ModelPreviewRenderer {
         double closestDistance = Double.POSITIVE_INFINITY;
         for (ModelSeat seat : seatVoxels(model)) {
             double distance = rayBoxDistance(origin, direction,
-                    seat.x() * 16.0, (seat.x() + 1) * 16.0,
-                    seat.y() * 16.0, (seat.y() + 1) * 16.0,
-                    seat.z() * 16.0, (seat.z() + 1) * 16.0);
+                    seat.x(), seat.x() + 1.0,
+                    seat.y(), seat.y() + 1.0,
+                    seat.z(), seat.z() + 1.0);
             if (distance >= 0.0 && distance < closestDistance) {
                 closest = seat;
                 closestDistance = distance;
@@ -221,16 +221,17 @@ public final class ModelPreviewRenderer {
             if (from == null || to == null) {
                 continue;
             }
-            int minX = (int) Math.floor(from[0] / 16.0);
-            int minY = (int) Math.floor(from[1] / 16.0);
-            int minZ = (int) Math.floor(from[2] / 16.0);
-            int maxX = (int) Math.ceil(to[0] / 16.0) - 1;
-            int maxY = (int) Math.ceil(to[1] / 16.0) - 1;
-            int maxZ = (int) Math.ceil(to[2] / 16.0) - 1;
+            int minX = (int) Math.floor(from[0]);
+            int minY = (int) Math.floor(from[1]);
+            int minZ = (int) Math.floor(from[2]);
+            int maxX = (int) Math.ceil(to[0]) - 1;
+            int maxY = (int) Math.ceil(to[1]) - 1;
+            int maxZ = (int) Math.ceil(to[2]) - 1;
             for (int x = minX; x <= maxX && voxels.size() < 4_096; x++) {
                 for (int y = minY; y <= maxY && voxels.size() < 4_096; y++) {
                     for (int z = minZ; z <= maxZ && voxels.size() < 4_096; z++) {
-                        if (x >= -128 && x <= 127 && y >= -128 && y <= 127 && z >= -128 && z <= 127) {
+                        if (x >= -2_048 && x <= 2_047 && y >= -2_048 && y <= 2_047
+                                && z >= -2_048 && z <= 2_047) {
                             voxels.add(new ModelSeat(x, y, z));
                         }
                     }
@@ -321,14 +322,14 @@ public final class ModelPreviewRenderer {
 
     private static void addSeatFaces(List<ProjectedFace> faces, ModelSeat seat, Camera camera, Color color) {
         double[][] corners = {
-                {seat.x() * 16.0, seat.y() * 16.0, seat.z() * 16.0},
-                {(seat.x() + 1) * 16.0, seat.y() * 16.0, seat.z() * 16.0},
-                {(seat.x() + 1) * 16.0, seat.y() * 16.0, (seat.z() + 1) * 16.0},
-                {seat.x() * 16.0, seat.y() * 16.0, (seat.z() + 1) * 16.0},
-                {seat.x() * 16.0, (seat.y() + 1) * 16.0, seat.z() * 16.0},
-                {(seat.x() + 1) * 16.0, (seat.y() + 1) * 16.0, seat.z() * 16.0},
-                {(seat.x() + 1) * 16.0, (seat.y() + 1) * 16.0, (seat.z() + 1) * 16.0},
-                {seat.x() * 16.0, (seat.y() + 1) * 16.0, (seat.z() + 1) * 16.0}
+                {seat.x(), seat.y(), seat.z()},
+                {seat.x() + 1.0, seat.y(), seat.z()},
+                {seat.x() + 1.0, seat.y(), seat.z() + 1.0},
+                {seat.x(), seat.y(), seat.z() + 1.0},
+                {seat.x(), seat.y() + 1.0, seat.z()},
+                {seat.x() + 1.0, seat.y() + 1.0, seat.z()},
+                {seat.x() + 1.0, seat.y() + 1.0, seat.z() + 1.0},
+                {seat.x(), seat.y() + 1.0, seat.z() + 1.0}
         };
         Color translucent = new Color(color.getRed(), color.getGreen(), color.getBlue(), 100);
         addVisibleFaces(faces, corners, camera,
@@ -445,8 +446,7 @@ public final class ModelPreviewRenderer {
         double centerX = (minX + maxX) * 0.5;
         double centerY = (minY + maxY) * 0.5;
         for (ModelSeat voxel : seatVoxels(model)) {
-            double[] center = {(voxel.x() + 0.5) * 16.0, (voxel.y() + 0.5) * 16.0,
-                    (voxel.z() + 0.5) * 16.0};
+            double[] center = {voxel.x() + 0.5, voxel.y() + 0.5, voxel.z() + 0.5};
             double cameraX = center[0] * cos - center[2] * sin;
             double cameraDepth = center[0] * sin + center[2] * cos;
             double screenX = SIZE * 0.5 + (cameraX - centerX) * scale;

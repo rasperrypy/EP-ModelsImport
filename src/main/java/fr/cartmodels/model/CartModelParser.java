@@ -84,7 +84,9 @@ public final class CartModelParser {
 
         output.add("cubes", cubes);
         output.add("textures", textures);
-        output.add("seats", readSeats(source, elements));
+        int seatVoxelSize = readSeatVoxelSize(source);
+        output.addProperty("seatVoxelSize", seatVoxelSize);
+        output.add("seats", readSeats(source, elements, seatVoxelSize));
         String normalized = output.toString();
         if (normalized.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_FILE_BYTES) {
             throw new IOException("The normalized model exceeds the 8 MiB synchronization limit.");
@@ -92,8 +94,23 @@ public final class CartModelParser {
         return normalized;
     }
 
-    private static JsonArray readSeats(JsonObject source, JsonArray elements) throws IOException {
-        List<ModelSeat> seats = ModelSeat.read(source.get("cartmodels_seats"));
+    private static int readSeatVoxelSize(JsonObject source) throws IOException {
+        JsonElement element = source.get("cartmodels_seat_voxel_size");
+        if (element == null) {
+            return ModelSeat.LEGACY_VOXEL_SIZE;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw new IOException("Seat voxel size must be a supported integer.");
+        }
+        double value = element.getAsDouble();
+        if (value != ModelSeat.MODEL_VOXEL_SIZE && value != ModelSeat.LEGACY_VOXEL_SIZE) {
+            throw new IOException("Seat voxel size must be 1 or 16 model pixels.");
+        }
+        return (int) value;
+    }
+
+    private static JsonArray readSeats(JsonObject source, JsonArray elements, int voxelSize) throws IOException {
+        List<ModelSeat> seats = ModelSeat.read(source.get("cartmodels_seats"), voxelSize);
         JsonArray result = new JsonArray();
         for (ModelSeat seat : seats) {
             boolean overlapsModel = false;
@@ -113,9 +130,9 @@ public final class CartModelParser {
                 double x1 = to.get(0).getAsDouble();
                 double y1 = to.get(1).getAsDouble();
                 double z1 = to.get(2).getAsDouble();
-                if (x1 > seat.x() * 16.0 && x0 < (seat.x() + 1) * 16.0
-                        && y1 > seat.y() * 16.0 && y0 < (seat.y() + 1) * 16.0
-                        && z1 > seat.z() * 16.0 && z0 < (seat.z() + 1) * 16.0) {
+                if (x1 > seat.x() * (double) voxelSize && x0 < (seat.x() + 1) * (double) voxelSize
+                        && y1 > seat.y() * (double) voxelSize && y0 < (seat.y() + 1) * (double) voxelSize
+                        && z1 > seat.z() * (double) voxelSize && z0 < (seat.z() + 1) * (double) voxelSize) {
                     overlapsModel = true;
                     break;
                 }

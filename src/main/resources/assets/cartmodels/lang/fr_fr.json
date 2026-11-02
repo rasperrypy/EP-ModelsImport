@@ -42,6 +42,6 @@
   "seat.cartmodels.entered": "Tu as pris le siège %1$s. Accroupis-toi pour descendre.",
   "seat.cartmodels.failed": "Impossible de te placer sur ce siège.",
   "seat.cartmodels.model_missing": "Les données de ce modèle ne sont pas disponibles.",
-  "screen.cartmodels.import.seats_hint": "Survole un voxel puis clique pour le définir comme siège",
+  "screen.cartmodels.import.seats_hint": "Survole un voxel du modèle puis clique pour le définir comme siège",
   "screen.cartmodels.import.rotate_hint": "Glisse la souris pour tourner l’aperçu 3D"
 }

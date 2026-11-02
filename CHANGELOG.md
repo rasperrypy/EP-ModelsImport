@@ -1,10 +1,33 @@
 # Changelog
 
+## 5.6.0
+
+### Sièges par voxel du modèle
+- Chaque cellule de 1×1×1 pixel Blockbench peut être sélectionnée séparément ; les sièges ne sont plus regroupés par blocs de 16×16×16 pixels Minecraft.
+- Les sièges précis sont placés à la hauteur du voxel choisi.
+- La taille des voxels de siège est enregistrée avec les modèles ; les modèles déjà sauvegardés conservent leur interprétation historique.
+
+### Flou du menu d’import
+- Désactivation temporaire du réglage global de flou des menus pendant l’import, puis restauration de sa valeur précédente lorsque l’écran est quitté.
+- Le voile sombre translucide conserve le contraste sans flouter les textes ni l’aperçu.
+
+### Compatibilité
+- Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
+
+## 5.5.2
+
+### Première correction du flou
+- Le réglage global de flou des menus Minecraft est temporairement désactivé pendant l’ouverture du panneau d’import.
+- La valeur choisie par le joueur est restaurée en quittant l’écran ou en ouvrant un autre écran ; les préférences graphiques restent inchangées.
+- Cette correction ne couvrait pas tous les cas ; le réglage est maintenant également contrôlé pendant le rendu en 5.6.0.
+
+### Compatibilité
+- Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
+
 ## 5.5.1
 
 ### Correction du flou
-- Le menu d’import ne fait plus appel au fond transparent de Minecraft, qui appliquait encore un flou derrière les textes et l’aperçu.
-- Le monde est maintenant assombri par un voile translucide dessiné directement, sans flou ; les textes et l’aperçu restent nets.
+- Le menu d’import ne fait plus appel au fond transparent de Minecraft et dessine un voile translucide ; le réglage global du flou est désormais également désactivé temporairement en 5.5.2.
 
 ### Compatibilité
 - Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
