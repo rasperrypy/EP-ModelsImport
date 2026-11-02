@@ -1,0 +1,1577 @@
+{
+  "meta": {
+    "format_version": "4.10",
+    "model_format": "free",
+    "box_uv": false
+  },
+  "name": "Test Cart",
+  "model_identifier": "cartmodels:test_cart",
+  "visible_box": [
+    0,
+    0,
+    0,
+    40,
+    32,
+    24
+  ],
+  "variable_placeholders": "",
+  "variable_placeholder_buttons": [],
+  "resolution": {
+    "width": 64,
+    "height": 64
+  },
+  "elements": [
+    {
+      "name": "Steel chassis",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a001",
+      "type": "cube",
+      "from": [
+        -12,
+        3,
+        -7
+      ],
+      "to": [
+        12,
+        5,
+        7
+      ],
+      "origin": [
+        0,
+        4,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Wooden floor",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a002",
+      "type": "cube",
+      "from": [
+        -11,
+        5,
+        -6
+      ],
+      "to": [
+        11,
+        7,
+        6
+      ],
+      "origin": [
+        0,
+        6,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Left red side",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a003",
+      "type": "cube",
+      "from": [
+        -10,
+        7,
+        -6
+      ],
+      "to": [
+        10,
+        13,
+        -4
+      ],
+      "origin": [
+        0,
+        10,
+        -5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Right red side",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a004",
+      "type": "cube",
+      "from": [
+        -10,
+        7,
+        4
+      ],
+      "to": [
+        10,
+        13,
+        6
+      ],
+      "origin": [
+        0,
+        10,
+        5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Front panel",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a005",
+      "type": "cube",
+      "from": [
+        -12,
+        7,
+        -5
+      ],
+      "to": [
+        -10,
+        13,
+        5
+      ],
+      "origin": [
+        -11,
+        10,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Rear panel",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a006",
+      "type": "cube",
+      "from": [
+        10,
+        7,
+        -5
+      ],
+      "to": [
+        12,
+        13,
+        5
+      ],
+      "origin": [
+        11,
+        10,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            32,
+            0,
+            48,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Left gold trim",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a007",
+      "type": "cube",
+      "from": [
+        -10,
+        13,
+        -6.5
+      ],
+      "to": [
+        10,
+        14,
+        -4
+      ],
+      "origin": [
+        0,
+        13.5,
+        -5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Right gold trim",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a008",
+      "type": "cube",
+      "from": [
+        -10,
+        13,
+        4
+      ],
+      "to": [
+        10,
+        14,
+        6.5
+      ],
+      "origin": [
+        0,
+        13.5,
+        5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Passenger seat",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a009",
+      "type": "cube",
+      "from": [
+        -5,
+        8,
+        -3
+      ],
+      "to": [
+        5,
+        10,
+        3
+      ],
+      "origin": [
+        0,
+        9,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Passenger backrest",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a00a",
+      "type": "cube",
+      "from": [
+        4,
+        9,
+        -3
+      ],
+      "to": [
+        6,
+        14,
+        3
+      ],
+      "origin": [
+        5,
+        9,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        -8
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Front axle",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a00b",
+      "type": "cube",
+      "from": [
+        -8,
+        2,
+        -8
+      ],
+      "to": [
+        -6,
+        4,
+        8
+      ],
+      "origin": [
+        -7,
+        3,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Rear axle",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a00c",
+      "type": "cube",
+      "from": [
+        6,
+        2,
+        -8
+      ],
+      "to": [
+        8,
+        4,
+        8
+      ],
+      "origin": [
+        7,
+        3,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Front left wheel",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a00d",
+      "type": "cube",
+      "from": [
+        -10,
+        0,
+        -10
+      ],
+      "to": [
+        -4,
+        6,
+        -7
+      ],
+      "origin": [
+        -7,
+        3,
+        -8.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Front right wheel",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a00e",
+      "type": "cube",
+      "from": [
+        -10,
+        0,
+        7
+      ],
+      "to": [
+        -4,
+        6,
+        10
+      ],
+      "origin": [
+        -7,
+        3,
+        8.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Rear left wheel",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a00f",
+      "type": "cube",
+      "from": [
+        4,
+        0,
+        -10
+      ],
+      "to": [
+        10,
+        6,
+        -7
+      ],
+      "origin": [
+        7,
+        3,
+        -8.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Rear right wheel",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a010",
+      "type": "cube",
+      "from": [
+        4,
+        0,
+        7
+      ],
+      "to": [
+        10,
+        6,
+        10
+      ],
+      "origin": [
+        7,
+        3,
+        8.5
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            16,
+            0,
+            32,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Front left lamp",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a011",
+      "type": "cube",
+      "from": [
+        -13,
+        9,
+        -4
+      ],
+      "to": [
+        -12,
+        11,
+        -2
+      ],
+      "origin": [
+        -12.5,
+        10,
+        -3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    },
+    {
+      "name": "Front right lamp",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a012",
+      "type": "cube",
+      "from": [
+        -13,
+        9,
+        2
+      ],
+      "to": [
+        -12,
+        11,
+        4
+      ],
+      "origin": [
+        -12.5,
+        10,
+        3
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "autouv": 0,
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "east": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "south": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "west": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "up": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        },
+        "down": {
+          "uv": [
+            48,
+            0,
+            64,
+            16
+          ],
+          "texture": "wagon_atlas"
+        }
+      }
+    }
+  ],
+  "outliner": [
+    {
+      "name": "Test Cart",
+      "uuid": "e7aa9436-74ae-4057-a970-9c58cf66a020",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "export": true,
+      "isOpen": true,
+      "locked": false,
+      "children": [
+        "e7aa9436-74ae-4057-a970-9c58cf66a001",
+        "e7aa9436-74ae-4057-a970-9c58cf66a002",
+        "e7aa9436-74ae-4057-a970-9c58cf66a003",
+        "e7aa9436-74ae-4057-a970-9c58cf66a004",
+        "e7aa9436-74ae-4057-a970-9c58cf66a005",
+        "e7aa9436-74ae-4057-a970-9c58cf66a006",
+        "e7aa9436-74ae-4057-a970-9c58cf66a007",
+        "e7aa9436-74ae-4057-a970-9c58cf66a008",
+        "e7aa9436-74ae-4057-a970-9c58cf66a009",
+        "e7aa9436-74ae-4057-a970-9c58cf66a00a",
+        "e7aa9436-74ae-4057-a970-9c58cf66a00b",
+        "e7aa9436-74ae-4057-a970-9c58cf66a00c",
+        "e7aa9436-74ae-4057-a970-9c58cf66a00d",
+        "e7aa9436-74ae-4057-a970-9c58cf66a00e",
+        "e7aa9436-74ae-4057-a970-9c58cf66a00f",
+        "e7aa9436-74ae-4057-a970-9c58cf66a010",
+        "e7aa9436-74ae-4057-a970-9c58cf66a011",
+        "e7aa9436-74ae-4057-a970-9c58cf66a012"
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "path": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAACWUlEQVR4nOWXIUtEURCF388QRIMrCO4Wi2UVNpgEk8misGAwLBhMis21mQwmi7/AIiarwSqLxV8g+A+EK9Mel8e7d+bMe2/ufeG0Kefj3jlnivPJwCE6OjmF9Dvfdy/DQZSqZn+eR5CK+8NNhwgFgJhXB/A+3zMJoO6VZA8g9EXKZm4OloKG/RnTAGL2g2kAH58LMYDY5agKQHMJkvmyOAA4yQADaCoGpQC4sZgVAEknyOYLSAuRWQCcFEDaYPIANKtwkgAQ870B0FoVtgiAU4VFALo+hxHzJgBc3d5BIpNfu6MoVc3+LY4hFa8XOw4RCgAxrw6AjiGLAOpeSfYAQl+kbIYiLmTYnzENIGY/mAZAN4AUQOxyVAWguQT9Y4gDgJMMMICmYlAKgBuLWQGQdIJsvoC0EJkFwEkBpA0mD0CzCicJADHfGwCtVWGLADhVWASg63MYMW8CwPZ4AolMXq6sRqlq9u16GVIxG685RCgAxLw6ADqGLAKoeyXZAwh9kbIZiriQYX/GNICY/WAaAN0AUgCxy1EVgOYS9I8hDgBOMsAAmopBKQBuLGYFQNIJsvkC0kJkFgAnBZA2mDwAzSqcJADEfG8AtFaFLQLgVGERgK7PYcS8CQDTsxkkMvmwsR6lqtnvpyGk4nG65RChABDz6gDoGLIIoO6VZA8g9EXKZijiQob9GdMAYvaDaQB0A0gBxC5HVQCaS9A/hjgAOMkAA2gqBqUAuLGYFQBJJ8jmC0gLkVkAnBRA2mDyADSrcJIAEPO9AdBaFbYIgFOFRQC6PocR8xoA/gGZmNwmdWO1kQAAAABJRU5ErkJggg==",
+      "name": "Wagon paint atlas",
+      "folder": "",
+      "namespace": "",
+      "id": "wagon_atlas",
+      "group": "",
+      "width": 64,
+      "height": 64,
+      "uv_width": 64,
+      "uv_height": 64,
+      "particle": true,
+      "use_as_default": true
+    }
+  ],
+  "animations": [],
+  "animation_variable_placeholders": ""
+}
