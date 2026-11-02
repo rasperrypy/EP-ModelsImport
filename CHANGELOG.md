@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.5.0
+
+### Verrouillage temporaire des sièges
+- Durée de verrouillage configurable par modèle lors de l’import, de 0 à 3 600 secondes ; 0 conserve la sortie normale.
+- Le joueur peut forcer une sortie d’urgence avec `/unstuck`, qui le téléporte en X=0, Z=0 au niveau du sol de sa dimension.
+- Le verrouillage est synchronisé avec les clients et libéré automatiquement à son expiration, à la mort du joueur ou si le bloc d’ancrage disparaît.
+
 ## 6.0.0
 
 ### Support expérimental des meshes Blockbench

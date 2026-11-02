@@ -20,6 +20,7 @@ import javax.imageio.ImageIO;
 
 public final class CartModelParser {
     public static final int MAX_FILE_BYTES = 8 * 1024 * 1024;
+    public static final int MAX_SEAT_LOCK_SECONDS = 3_600;
     private static final int MAX_CUBOIDS = 4_096;
     private static final int MAX_TEXTURES = 32;
     private static final int MAX_COORDINATE = 2_048;
@@ -33,6 +34,117 @@ public final class CartModelParser {
         return parse(fileName, contents, false);
     }
 
+    public static byte[] prepareUpload(String fileName, String contents) throws IOException {
+        JsonObject source = parseSource(contents);
+        JsonObject upload = new JsonObject();
+        JsonArray elements = source.has("elements") && source.get("elements").isJsonArray()
+                ? source.getAsJsonArray("elements") : null;
+        if (elements == null) {
+            throw new IOException("The model file does not contain an elements array.");
+        }
+        JsonArray compactElements = new JsonArray();
+        for (JsonElement element : elements) {
+            if (!element.isJsonObject()) {
+                compactElements.add(element.deepCopy());
+                continue;
+            }
+            JsonObject compactElement = new JsonObject();
+            JsonObject modelElement = element.getAsJsonObject();
+            boolean blockbench = fileName.toLowerCase(Locale.ROOT).endsWith(".bbmodel");
+            if (blockbench && modelElement.has("type")) {
+                compactElement.add("type", modelElement.get("type").deepCopy());
+            }
+            String type = blockbench && modelElement.has("type") && modelElement.get("type").isJsonPrimitive()
+                    ? modelElement.get("type").getAsString() : "cube";
+            if (type.equals("mesh")) {
+                copyIfPresent(modelElement, compactElement, "vertices");
+                copyMeshFaces(modelElement, compactElement);
+            } else {
+                copyIfPresent(modelElement, compactElement, "from");
+                copyIfPresent(modelElement, compactElement, "to");
+                copyIfPresent(modelElement, compactElement, "origin");
+                copyIfPresent(modelElement, compactElement, "rotation");
+                copyCubeFaces(modelElement, compactElement);
+            }
+            compactElements.add(compactElement);
+        }
+        upload.add("elements", compactElements);
+        if (source.has("textures")) {
+            JsonElement textures = source.get("textures");
+            if (fileName.toLowerCase(Locale.ROOT).endsWith(".bbmodel") && textures.isJsonArray()) {
+                JsonArray compactTextures = new JsonArray();
+                for (JsonElement textureElement : textures.getAsJsonArray()) {
+                    if (!textureElement.isJsonObject()) {
+                        compactTextures.add(textureElement.deepCopy());
+                        continue;
+                    }
+                    JsonObject texture = textureElement.getAsJsonObject();
+                    JsonObject compactTexture = new JsonObject();
+                    for (String key : List.of("source", "data", "path", "id", "name")) {
+                        copyIfPresent(texture, compactTexture, key);
+                    }
+                    compactTextures.add(compactTexture);
+                }
+                upload.add("textures", compactTextures);
+            } else {
+                upload.add("textures", textures.deepCopy());
+            }
+        }
+        for (String key : List.of("cartmodels_seats", "cartmodels_seat_voxel_size",
+                "cartmodels_experimental_meshes", "cartmodels_seat_lock_seconds")) {
+            copyIfPresent(source, upload, key);
+        }
+        byte[] bytes = upload.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (bytes.length > MAX_FILE_BYTES) {
+            throw new IOException("The prepared upload exceeds the 8 MiB limit.");
+        }
+        return bytes;
+    }
+
+    private static void copyIfPresent(JsonObject source, JsonObject destination, String key) {
+        if (source.has(key)) {
+            destination.add(key, source.get(key).deepCopy());
+        }
+    }
+
+    private static void copyCubeFaces(JsonObject source, JsonObject destination) {
+        if (!source.has("faces") || !source.get("faces").isJsonObject()) {
+            return;
+        }
+        JsonObject faces = new JsonObject();
+        for (Map.Entry<String, JsonElement> entry : source.getAsJsonObject("faces").entrySet()) {
+            if (!entry.getValue().isJsonObject()) {
+                faces.add(entry.getKey(), entry.getValue().deepCopy());
+                continue;
+            }
+            JsonObject face = new JsonObject();
+            for (String key : List.of("uv", "rotation", "texture")) {
+                copyIfPresent(entry.getValue().getAsJsonObject(), face, key);
+            }
+            faces.add(entry.getKey(), face);
+        }
+        destination.add("faces", faces);
+    }
+
+    private static void copyMeshFaces(JsonObject source, JsonObject destination) {
+        if (!source.has("faces") || !source.get("faces").isJsonObject()) {
+            return;
+        }
+        JsonObject faces = new JsonObject();
+        for (Map.Entry<String, JsonElement> entry : source.getAsJsonObject("faces").entrySet()) {
+            if (!entry.getValue().isJsonObject()) {
+                faces.add(entry.getKey(), entry.getValue().deepCopy());
+                continue;
+            }
+            JsonObject face = new JsonObject();
+            for (String key : List.of("vertices", "uv", "texture")) {
+                copyIfPresent(entry.getValue().getAsJsonObject(), face, key);
+            }
+            faces.add(entry.getKey(), face);
+        }
+        destination.add("faces", faces);
+    }
+
     public static String parse(String fileName, String contents, boolean allowExperimentalMeshes) throws IOException {
         String lowerFileName = fileName.toLowerCase(Locale.ROOT);
         if (!lowerFileName.endsWith(".bbmodel") && !lowerFileName.endsWith(".json")) {
@@ -42,13 +154,7 @@ public final class CartModelParser {
             throw new IOException("Model files cannot exceed 8 MiB.");
         }
 
-        JsonObject source;
-        try {
-            source = JsonParser.parseString(contents).getAsJsonObject();
-        } catch (IllegalStateException | JsonSyntaxException exception) {
-            throw new IOException("The model file does not contain a valid JSON object.", exception);
-        }
-
+        JsonObject source = parseSource(contents);
         boolean blockbench = lowerFileName.endsWith(".bbmodel");
         JsonArray elements = source.has("elements") && source.get("elements").isJsonArray()
                 ? source.getAsJsonArray("elements") : null;
@@ -106,6 +212,7 @@ public final class CartModelParser {
         output.add("textures", textures);
         int seatVoxelSize = readSeatVoxelSize(source);
         output.addProperty("seatVoxelSize", seatVoxelSize);
+        output.addProperty("seatLockSeconds", readSeatLockSeconds(source));
         output.add("seats", readSeats(source, elements, seatVoxelSize, allowExperimentalMeshes
                 || readExperimentalMeshFlag(source)));
         String normalized = output.toString();
@@ -113,6 +220,19 @@ public final class CartModelParser {
             throw new IOException("The normalized model exceeds the 8 MiB synchronization limit.");
         }
         return normalized;
+    }
+
+    private static JsonObject parseSource(String contents) throws IOException {
+        if (contents.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_FILE_BYTES) {
+            throw new IOException("Model files cannot exceed 8 MiB.");
+        }
+        JsonObject source;
+        try {
+            source = JsonParser.parseString(contents).getAsJsonObject();
+        } catch (IllegalStateException | JsonSyntaxException exception) {
+            throw new IOException("The model file does not contain a valid JSON object.", exception);
+        }
+        return source;
     }
 
     private static boolean readExperimentalMeshFlag(JsonObject source) throws IOException {
@@ -124,6 +244,22 @@ public final class CartModelParser {
             throw new IOException("The experimental mesh option must be a boolean.");
         }
         return element.getAsBoolean();
+    }
+
+    private static int readSeatLockSeconds(JsonObject source) throws IOException {
+        JsonElement element = source.get("cartmodels_seat_lock_seconds");
+        if (element == null) {
+            return 0;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw new IOException("Seat lock duration must be an integer.");
+        }
+        double value = element.getAsDouble();
+        if (value != Math.rint(value) || value < 0 || value > MAX_SEAT_LOCK_SECONDS) {
+            throw new IOException("Seat lock duration must be between 0 and "
+                    + MAX_SEAT_LOCK_SECONDS + " seconds.");
+        }
+        return (int) value;
     }
 
     private static int readSeatVoxelSize(JsonObject source) throws IOException {

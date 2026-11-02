@@ -30,6 +30,7 @@ import net.minecraft.resources.ResourceLocation;
 
 public final class CartModelImportScreen extends Screen {
     private EditBox nameInput;
+    private EditBox seatLockInput;
     private Button importButton;
     private Button clearButton;
     private Button rotateButton;
@@ -80,6 +81,13 @@ public final class CartModelImportScreen extends Screen {
             updateButtonState();
         });
         addRenderableWidget(nameInput);
+
+        seatLockInput = new EditBox(font, infoX + 52, panelY + 48, Math.max(36, infoWidth - 52), 18,
+                Component.translatable("screen.cartmodels.import.seat_lock"));
+        seatLockInput.setMaxLength(4);
+        seatLockInput.setValue("0");
+        seatLockInput.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
+        addRenderableWidget(seatLockInput);
 
         rotateButton = addRenderableWidget(Button.builder(
                         Component.translatable("screen.cartmodels.import.rotate"), button -> rotatePreview())
@@ -185,9 +193,11 @@ public final class CartModelImportScreen extends Screen {
                     .onMalformedInput(CodingErrorAction.REPORT)
                     .onUnmappableCharacter(CodingErrorAction.REPORT)
                     .decode(ByteBuffer.wrap(bytes)).toString();
-            String normalized = CartModelParser.parse(fileName, contents, true);
+            byte[] preparedBytes = CartModelParser.prepareUpload(fileName, contents);
+            String preparedContents = new String(preparedBytes, StandardCharsets.UTF_8);
+            String normalized = CartModelParser.parse(fileName, preparedContents, true);
             JsonObject model = JsonParser.parseString(normalized).getAsJsonObject();
-            return new PreviewData(bytes, model, CartModelInfo.inspect(normalized));
+            return new PreviewData(preparedBytes, model, CartModelInfo.inspect(normalized));
         } catch (IOException | IllegalStateException | JsonSyntaxException | IllegalArgumentException exception) {
             throw new CompletionException(exception);
         }
@@ -225,6 +235,10 @@ public final class CartModelImportScreen extends Screen {
         try {
             JsonObject source = JsonParser.parseString(new String(selectedBytes, StandardCharsets.UTF_8))
                     .getAsJsonObject();
+            int seatLockSeconds = parseSeatLockSeconds();
+            if (seatLockSeconds < 0) {
+                return;
+            }
             boolean containsMeshes = previewModel != null && previewModel.has("meshes")
                     && previewModel.getAsJsonArray("meshes").size() > 0;
             if (containsMeshes && !experimentalMeshesEnabled) {
@@ -236,6 +250,7 @@ public final class CartModelImportScreen extends Screen {
             source.add("cartmodels_seats", seats);
             source.addProperty("cartmodels_seat_voxel_size", ModelSeat.MODEL_VOXEL_SIZE);
             source.addProperty("cartmodels_experimental_meshes", experimentalMeshesEnabled);
+            source.addProperty("cartmodels_seat_lock_seconds", seatLockSeconds);
             byte[] uploadBytes = source.toString().getBytes(StandardCharsets.UTF_8);
             if (uploadBytes.length > CartModelParser.MAX_FILE_BYTES) {
                 setLocalStatus(Component.translatable("screen.cartmodels.import.seats_too_large"), false);
@@ -249,6 +264,25 @@ public final class CartModelImportScreen extends Screen {
             setLocalStatus(Component.translatable("screen.cartmodels.import.upload_failed",
                     exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage()),
                     false);
+        }
+    }
+
+    private int parseSeatLockSeconds() {
+        String value = seatLockInput.getValue().trim();
+        if (value.isEmpty()) {
+            setLocalStatus(Component.translatable("screen.cartmodels.import.seat_lock_invalid"), false);
+            return -1;
+        }
+        try {
+            int seconds = Integer.parseInt(value);
+            if (seconds > CartModelParser.MAX_SEAT_LOCK_SECONDS) {
+                setLocalStatus(Component.translatable("screen.cartmodels.import.seat_lock_invalid"), false);
+                return -1;
+            }
+            return seconds;
+        } catch (NumberFormatException exception) {
+            setLocalStatus(Component.translatable("screen.cartmodels.import.seat_lock_invalid"), false);
+            return -1;
         }
     }
 
@@ -389,15 +423,17 @@ public final class CartModelImportScreen extends Screen {
                     ? Component.translatable("screen.cartmodels.import.geometry", cubeCount, meshCount)
                     : Component.translatable("screen.cartmodels.import.cubes", cubeCount);
             graphics.drawString(font, geometry,
-                    infoX, panelY + 65, 0xFFE2E8F0);
+                    infoX, panelY + 70, 0xFFE2E8F0);
             graphics.drawString(font, Component.translatable("screen.cartmodels.import.textures", textureCount),
-                    infoX, panelY + 78, 0xFFE2E8F0);
+                    infoX, panelY + 82, 0xFFE2E8F0);
             graphics.drawString(font, Component.translatable("screen.cartmodels.import.bytes", dataSize),
-                    infoX, panelY + 91, 0xFFE2E8F0);
+                    infoX, panelY + 94, 0xFFE2E8F0);
             graphics.drawString(font, Component.translatable(
                     "screen.cartmodels.import.seats", selectedSeats.size(), ModelSeat.MAX_SEATS),
-                    infoX, panelY + 104, 0xFFFFC857);
+                    infoX, panelY + 106, 0xFFFFC857);
         }
+        graphics.drawString(font, Component.translatable("screen.cartmodels.import.seat_lock_label"),
+                infoX, panelY + 53, 0xFFE2E8F0);
         int statusColor = statusSuccess ? 0xFF80FF80 : 0xFFFF8080;
         graphics.drawCenteredString(font, font.plainSubstrByWidth(status.getString(), width - 18),
                 width / 2, height - 43, statusColor);
