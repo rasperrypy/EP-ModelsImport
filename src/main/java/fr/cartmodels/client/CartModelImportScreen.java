@@ -4,7 +4,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
-import java.awt.image.BufferedImage;
 import fr.cartmodels.model.CartModelInfo;
 import fr.cartmodels.model.CartModelParser;
 import fr.cartmodels.model.CartModelStore;
@@ -43,8 +42,14 @@ public final class CartModelImportScreen extends Screen {
     private boolean loading;
     private boolean uploading;
     private boolean replacementConfirmation;
+    private boolean previewDragging;
+    private boolean previewDragMoved;
     private final List<ModelSeat> selectedSeats = new ArrayList<>();
-    private int previewRotation;
+    private ModelSeat hoveredSeat;
+    private double previewYaw = 45.0;
+    private double previewPitch = 25.0;
+    private double previewDragStartX;
+    private double previewDragStartY;
     private int cubeCount;
     private int textureCount;
     private int dataSize;
@@ -113,6 +118,7 @@ public final class CartModelImportScreen extends Screen {
         int revision = ++selectionRevision;
         selectedBytes = null;
         previewModel = null;
+        hoveredSeat = null;
         replacementConfirmation = false;
         releasePreview();
         suggestName(fileName);
@@ -121,7 +127,7 @@ public final class CartModelImportScreen extends Screen {
         updateButtonState();
 
         Minecraft client = minecraft;
-        CompletableFuture.supplyAsync(() -> readAndParse(selectedPath, fileName, previewRotation))
+        CompletableFuture.supplyAsync(() -> readAndParse(selectedPath, fileName))
                 .whenComplete((preview, failure) -> client.execute(() -> {
                     if (client.screen != this || selectionRevision != revision) {
                         return;
@@ -136,26 +142,23 @@ public final class CartModelImportScreen extends Screen {
                         updateButtonState();
                         return;
                     }
-                    try {
-                        selectedBytes = preview.bytes();
-                        previewModel = preview.model();
-                        selectedSeats.clear();
-                        cubeCount = preview.info().cubeCount();
-                        textureCount = preview.info().embeddedTextureCount();
-                        dataSize = preview.info().dataSizeBytes();
-                        previewTexture = DynamicTextures.registerPreview(preview.image());
-                        setLocalStatus(Component.translatable("screen.cartmodels.import.ready"), true);
-                    } catch (IOException exception) {
+                    selectedBytes = preview.bytes();
+                    previewModel = preview.model();
+                    selectedSeats.clear();
+                    cubeCount = preview.info().cubeCount();
+                    textureCount = preview.info().embeddedTextureCount();
+                    dataSize = preview.info().dataSizeBytes();
+                    setLocalStatus(Component.translatable("screen.cartmodels.import.ready"), true);
+                    refreshPreview();
+                    if (previewTexture == null) {
                         selectedBytes = null;
                         previewModel = null;
-                        setLocalStatus(Component.translatable("screen.cartmodels.import.preview_failed",
-                                exception.getMessage()), false);
                     }
                     updateButtonState();
                 }));
     }
 
-    private static PreviewData readAndParse(Path file, String fileName, int rotation) {
+    private static PreviewData readAndParse(Path file, String fileName) {
         try {
             long fileSize = Files.size(file);
             if (fileSize == 0 || fileSize > CartModelParser.MAX_FILE_BYTES) {
@@ -171,8 +174,7 @@ public final class CartModelImportScreen extends Screen {
                     .decode(ByteBuffer.wrap(bytes)).toString();
             String normalized = CartModelParser.parse(fileName, contents);
             JsonObject model = JsonParser.parseString(normalized).getAsJsonObject();
-            BufferedImage image = ModelPreviewRenderer.render(model, rotation, List.of(), true);
-            return new PreviewData(bytes, model, CartModelInfo.inspect(normalized), image);
+            return new PreviewData(bytes, model, CartModelInfo.inspect(normalized));
         } catch (IOException | IllegalStateException | JsonSyntaxException | IllegalArgumentException exception) {
             throw new CompletionException(exception);
         }
@@ -233,10 +235,11 @@ public final class CartModelImportScreen extends Screen {
         if (previewModel == null) {
             return;
         }
-        previewRotation++;
+        previewYaw += 45.0;
         try {
             ResourceLocation nextTexture = DynamicTextures.registerPreview(
-                    ModelPreviewRenderer.render(previewModel, previewRotation, selectedSeats, true));
+                    ModelPreviewRenderer.renderInteractive(previewModel, previewYaw, previewPitch,
+                            selectedSeats, hoveredSeat));
             releasePreview();
             previewTexture = nextTexture;
         } catch (IOException exception) {
@@ -251,10 +254,14 @@ public final class CartModelImportScreen extends Screen {
         selectedBytes = null;
         previewModel = null;
         selectedSeats.clear();
+        hoveredSeat = null;
         cubeCount = 0;
         textureCount = 0;
         dataSize = 0;
-        previewRotation = 0;
+        previewYaw = 45.0;
+        previewPitch = 25.0;
+        previewDragging = false;
+        previewDragMoved = false;
         replacementConfirmation = false;
         releasePreview();
         setLocalStatus(Component.translatable("screen.cartmodels.import.drop_hint"), true);
@@ -308,7 +315,7 @@ public final class CartModelImportScreen extends Screen {
 
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-        renderBackground(graphics, mouseX, mouseY, partialTick);
+        renderTransparentBackground(graphics);
         int panelX = width / 2 - 145;
         int panelY = Math.max(48, height / 2 - 62);
         graphics.drawCenteredString(font, title, width / 2, 15, 0xFFFFFF);
@@ -316,6 +323,8 @@ public final class CartModelImportScreen extends Screen {
                 width / 2, 32, 0xD0D0D0);
         graphics.drawCenteredString(font, Component.translatable("screen.cartmodels.import.seats_hint"),
                 width / 2, 43, 0xFFFFC857);
+        graphics.drawCenteredString(font, Component.translatable("screen.cartmodels.import.rotate_hint"),
+                width / 2, 54, 0xFFD0D0D0);
         graphics.fill(panelX - 1, panelY - 1, panelX + 113, panelY + 113, 0xFF59616B);
         graphics.fill(panelX, panelY, panelX + 112, panelY + 112, 0xFF20252B);
         if (previewTexture != null) {
@@ -361,32 +370,88 @@ public final class CartModelImportScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button == 0 && previewModel != null) {
-            int panelX = width / 2 - 145;
-            int panelY = Math.max(48, height / 2 - 62);
-            double previewLeft = panelX + 2.0;
-            double previewTop = panelY + 2.0;
-            if (mouseX >= previewLeft && mouseX < previewLeft + 108
-                    && mouseY >= previewTop && mouseY < previewTop + 108) {
-                ModelSeat voxel = ModelPreviewRenderer.voxelAt(previewModel, previewRotation,
-                        (mouseX - previewLeft) * 128.0 / 108.0,
-                        (mouseY - previewTop) * 128.0 / 108.0);
-                if (voxel != null) {
-                    if (!selectedSeats.remove(voxel)) {
-                        if (selectedSeats.size() == ModelSeat.MAX_SEATS) {
-                            setLocalStatus(Component.translatable("screen.cartmodels.import.seat_limit"), false);
-                        } else {
-                            selectedSeats.add(voxel);
-                        }
-                    }
-                    replacementConfirmation = false;
-                    refreshPreview();
-                    updateButtonState();
-                    return true;
-                }
-            }
+        if (button == 0 && previewModel != null && isInsidePreview(mouseX, mouseY)) {
+            previewDragging = true;
+            previewDragMoved = false;
+            previewDragStartX = mouseX;
+            previewDragStartY = mouseY;
+            updateHoveredSeat(mouseX, mouseY);
+            return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (previewDragging && button == 0) {
+            if (Math.abs(mouseX - previewDragStartX) > 3.0 || Math.abs(mouseY - previewDragStartY) > 3.0) {
+                previewDragMoved = true;
+            }
+            previewYaw += dragX * 0.8;
+            previewPitch = Math.max(-75.0, Math.min(75.0, previewPitch + dragY * 0.8));
+            updateHoveredSeat(mouseX, mouseY);
+            refreshPreview();
+            return true;
+        }
+        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    @Override
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (previewDragging && button == 0) {
+            previewDragging = false;
+            if (!previewDragMoved) {
+                toggleHoveredSeat();
+            }
+            return true;
+        }
+        return super.mouseReleased(mouseX, mouseY, button);
+    }
+
+    @Override
+    public void mouseMoved(double mouseX, double mouseY) {
+        if (!previewDragging) {
+            updateHoveredSeat(mouseX, mouseY);
+        }
+        super.mouseMoved(mouseX, mouseY);
+    }
+
+    private boolean isInsidePreview(double mouseX, double mouseY) {
+        int panelX = width / 2 - 145;
+        int panelY = Math.max(48, height / 2 - 62);
+        return mouseX >= panelX + 2.0 && mouseX < panelX + 110.0
+                && mouseY >= panelY + 2.0 && mouseY < panelY + 110.0;
+    }
+
+    private void updateHoveredSeat(double mouseX, double mouseY) {
+        ModelSeat nextSeat = null;
+        if (previewModel != null && isInsidePreview(mouseX, mouseY)) {
+            int panelX = width / 2 - 145;
+            int panelY = Math.max(48, height / 2 - 62);
+            nextSeat = ModelPreviewRenderer.voxelAt(previewModel, previewYaw, previewPitch,
+                    (mouseX - panelX - 2.0) * 128.0 / 108.0,
+                    (mouseY - panelY - 2.0) * 128.0 / 108.0);
+        }
+        if (!java.util.Objects.equals(hoveredSeat, nextSeat)) {
+            hoveredSeat = nextSeat;
+            refreshPreview();
+        }
+    }
+
+    private void toggleHoveredSeat() {
+        if (hoveredSeat == null) {
+            return;
+        }
+        if (!selectedSeats.remove(hoveredSeat)) {
+            if (selectedSeats.size() == ModelSeat.MAX_SEATS) {
+                setLocalStatus(Component.translatable("screen.cartmodels.import.seat_limit"), false);
+                return;
+            }
+            selectedSeats.add(hoveredSeat);
+        }
+        replacementConfirmation = false;
+        refreshPreview();
+        updateButtonState();
     }
 
     private void refreshPreview() {
@@ -395,7 +460,8 @@ public final class CartModelImportScreen extends Screen {
         }
         try {
             ResourceLocation nextTexture = DynamicTextures.registerPreview(
-                    ModelPreviewRenderer.render(previewModel, previewRotation, selectedSeats, true));
+                    ModelPreviewRenderer.renderInteractive(previewModel, previewYaw, previewPitch,
+                            selectedSeats, hoveredSeat));
             releasePreview();
             previewTexture = nextTexture;
         } catch (IOException exception) {
@@ -404,6 +470,6 @@ public final class CartModelImportScreen extends Screen {
         }
     }
 
-    private record PreviewData(byte[] bytes, JsonObject model, CartModelInfo info, BufferedImage image) {
+    private record PreviewData(byte[] bytes, JsonObject model, CartModelInfo info) {
     }
 }

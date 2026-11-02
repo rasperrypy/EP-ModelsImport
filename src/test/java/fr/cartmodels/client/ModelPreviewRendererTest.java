@@ -1,6 +1,7 @@
 package fr.cartmodels.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.gson.JsonParser;
@@ -47,6 +48,44 @@ class ModelPreviewRendererTest {
 
         assertEquals(List.of(new ModelSeat(0, 0, 0)), ModelPreviewRenderer.seatVoxels(model));
         assertEquals(new ModelSeat(0, 0, 0), ModelPreviewRenderer.voxelAt(model, 0, 64, 64));
+    }
+
+    @Test
+    void rendersPerspectivePreviewAndPicksTheVoxelUnderTheCameraRay() {
+        var model = JsonParser.parseString("""
+                {
+                  "cubes": [{
+                    "from": [0, 0, 0],
+                    "to": [16, 16, 16],
+                    "faces": {}
+                  }],
+                  "textures": {}
+                }
+                """).getAsJsonObject();
+
+        BufferedImage frontView = ModelPreviewRenderer.renderInteractive(model, 35, 25, List.of(), null);
+        BufferedImage rotatedView = ModelPreviewRenderer.renderInteractive(model, 95, 55,
+                List.of(new ModelSeat(0, 0, 0)), null);
+
+        assertTrue(countOpaquePixels(frontView) > 100);
+        assertTrue(countDifferentPixels(frontView, rotatedView) > 20);
+        assertEquals(new ModelSeat(0, 0, 0), ModelPreviewRenderer.voxelAt(model, 35, 25, 64, 64));
+        assertNull(ModelPreviewRenderer.voxelAt(model, 35, 25, 0, 0));
+    }
+
+    @Test
+    void picksTheFrontVoxelWhenSeveralVoxelsShareTheSameScreenArea() {
+        var model = JsonParser.parseString("""
+                {
+                  "cubes": [
+                    {"from": [0, 0, 0], "to": [16, 16, 16], "faces": {}},
+                    {"from": [0, 0, 16], "to": [16, 16, 32], "faces": {}}
+                  ],
+                  "textures": {}
+                }
+                """).getAsJsonObject();
+
+        assertEquals(new ModelSeat(0, 0, 1), ModelPreviewRenderer.voxelAt(model, 0, 0, 64, 64));
     }
 
     private static int countOpaquePixels(BufferedImage image) {

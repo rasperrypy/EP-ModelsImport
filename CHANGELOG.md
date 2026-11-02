@@ -1,5 +1,24 @@
 # Changelog
 
+## 5.5.0
+
+### Aperçu 3D interactif
+- L’aperçu du modèle est rendu en perspective et peut être tourné librement en glissant la souris, comme dans Blockbench.
+- Le voxel sous le curseur est surligné ; un clic le définit ou le retire comme siège, avec une sélection visible dans l’aperçu 3D.
+- La sélection suit le rayon de la caméra afin de choisir le voxel visible sous le curseur, y compris lorsque les sièges se chevauchent à l’écran.
+- Les instructions de rotation et de sélection sont traduites en français et en anglais.
+
+### Compatibilité
+- Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
+
+## 5.1.0
+
+### Corrections
+- Le menu d’import n’applique plus le flou d’arrière-plan au texte et à l’aperçu ; un voile sombre translucide conserve le contraste tout en laissant le monde visible.
+
+### Compatibilité
+- Minecraft 1.21.1, NeoForge 21.1.265 et Java 21.
+
 ## 5.0.0
 
 ### Sièges sélectionnables

@@ -42,5 +42,6 @@
   "seat.cartmodels.entered": "You took seat %1$s. Sneak to get out.",
   "seat.cartmodels.failed": "Could not place you in that seat.",
   "seat.cartmodels.model_missing": "The data for this model is not available.",
-  "screen.cartmodels.import.seats_hint": "Click voxel markers to toggle passenger seats"
+  "screen.cartmodels.import.seats_hint": "Hover a voxel and click to toggle it as a seat",
+  "screen.cartmodels.import.rotate_hint": "Drag the mouse to rotate the 3D preview"
 }
