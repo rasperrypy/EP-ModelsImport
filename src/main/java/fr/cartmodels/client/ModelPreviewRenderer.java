@@ -36,8 +36,10 @@ public final class ModelPreviewRenderer {
         Graphics2D graphics = image.createGraphics();
         try {
             graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            JsonArray cubes = model.getAsJsonArray("cubes");
+            JsonArray cubes = model.has("cubes") && model.get("cubes").isJsonArray()
+                    ? model.getAsJsonArray("cubes") : new JsonArray();
             List<double[][]> vertices = new ArrayList<>();
+            List<double[][]> meshes = meshFaceVertices(model);
             for (var element : cubes) {
                 if (!element.isJsonObject()) {
                     continue;
@@ -49,7 +51,7 @@ public final class ModelPreviewRenderer {
                     vertices.add(transformCube(cube, from, to));
                 }
             }
-            if (vertices.isEmpty()) {
+            if (vertices.isEmpty() && meshes.isEmpty()) {
                 return image;
             }
 
@@ -83,6 +85,22 @@ public final class ModelPreviewRenderer {
                     }
                     faces.add(new Face(points, depth / indices.length, FACE_COLORS[faceIndex]));
                 }
+            }
+            for (double[][] mesh : meshes) {
+                double[][] points = new double[mesh.length][2];
+                double depth = 0.0;
+                for (int index = 0; index < mesh.length; index++) {
+                    double cameraX = mesh[index][0] * cos - mesh[index][2] * sin;
+                    double cameraDepth = mesh[index][0] * sin + mesh[index][2] * cos;
+                    double cameraY = cameraDepth * 0.5 - mesh[index][1];
+                    points[index] = new double[]{cameraX, cameraY};
+                    minX = Math.min(minX, cameraX);
+                    maxX = Math.max(maxX, cameraX);
+                    minY = Math.min(minY, cameraY);
+                    maxY = Math.max(maxY, cameraY);
+                    depth += cameraDepth + cameraY * 0.15;
+                }
+                faces.add(new Face(points, depth / mesh.length, FACE_COLORS[0]));
             }
             double spanX = Math.max(1.0, maxX - minX);
             double spanY = Math.max(1.0, maxY - minY);
@@ -133,14 +151,20 @@ public final class ModelPreviewRenderer {
             graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             graphics.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
             List<double[][]> cubes = cubeVertices(model);
-            if (cubes.isEmpty()) {
+            List<double[][]> meshes = meshFaceVertices(model);
+            List<double[][]> geometry = new ArrayList<>(cubes);
+            geometry.addAll(meshes);
+            if (geometry.isEmpty()) {
                 return image;
             }
 
-            Camera camera = camera(cubes, yaw, pitch);
+            Camera camera = camera(geometry, yaw, pitch);
             List<ProjectedFace> faces = new ArrayList<>();
             for (double[][] cube : cubes) {
                 addVisibleFaces(faces, cube, camera, FACE_COLORS, null);
+            }
+            for (double[][] meshFace : meshes) {
+                addMeshFace(faces, meshFace, camera);
             }
             for (ModelSeat seat : selectedSeats) {
                 if (!seat.equals(hoveredSeat)) {
@@ -179,10 +203,13 @@ public final class ModelPreviewRenderer {
 
     public static ModelSeat voxelAt(JsonObject model, double yaw, double pitch, double previewX, double previewY) {
         List<double[][]> cubes = cubeVertices(model);
-        if (cubes.isEmpty()) {
+        List<double[][]> meshes = meshFaceVertices(model);
+        List<double[][]> geometry = new ArrayList<>(cubes);
+        geometry.addAll(meshes);
+        if (geometry.isEmpty()) {
             return null;
         }
-        Camera camera = camera(cubes, yaw, pitch);
+        Camera camera = camera(geometry, yaw, pitch);
         double cameraX = (previewX - SIZE * 0.5) / camera.focal;
         double cameraY = (SIZE * 0.5 - previewY) / camera.focal;
         double[] origin = camera.toModel(0.0, 0.0, camera.distance);
@@ -195,22 +222,88 @@ public final class ModelPreviewRenderer {
 
         ModelSeat closest = null;
         double closestDistance = Double.POSITIVE_INFINITY;
-        for (ModelSeat seat : seatVoxels(model)) {
+        JsonArray modelCubes = model.has("cubes") && model.get("cubes").isJsonArray()
+                ? model.getAsJsonArray("cubes") : new JsonArray();
+        for (var element : modelCubes) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject cube = element.getAsJsonObject();
+            double[] from = vector(cube.getAsJsonArray("from"));
+            double[] to = vector(cube.getAsJsonArray("to"));
+            if (from == null || to == null) {
+                continue;
+            }
             double distance = rayBoxDistance(origin, direction,
-                    seat.x(), seat.x() + 1.0,
-                    seat.y(), seat.y() + 1.0,
-                    seat.z(), seat.z() + 1.0);
+                    from[0], to[0], from[1], to[1], from[2], to[2]);
             if (distance >= 0.0 && distance < closestDistance) {
-                closest = seat;
+                double step = 1.0E-7;
+                closest = new ModelSeat(
+                        voxelCoordinate(origin[0] + direction[0] * (distance + step), from[0], to[0]),
+                        voxelCoordinate(origin[1] + direction[1] * (distance + step), from[1], to[1]),
+                        voxelCoordinate(origin[2] + direction[2] * (distance + step), from[2], to[2]));
                 closestDistance = distance;
+            }
+        }
+        for (double[][] meshFace : meshes) {
+            for (int index = 1; index < meshFace.length - 1; index++) {
+                double distance = rayTriangleDistance(origin, direction,
+                        meshFace[0], meshFace[index], meshFace[index + 1]);
+                if (distance >= 0.0 && distance < closestDistance) {
+                    closestDistance = distance;
+                    double step = 1.0E-7;
+                    closest = new ModelSeat(
+                            worldVoxelCoordinate(origin[0] + direction[0] * (distance + step)),
+                            worldVoxelCoordinate(origin[1] + direction[1] * (distance + step)),
+                            worldVoxelCoordinate(origin[2] + direction[2] * (distance + step)));
+                }
             }
         }
         return closest;
     }
 
+    private static int worldVoxelCoordinate(double position) {
+        return Math.max(-2_048, Math.min(2_047, (int) Math.floor(position)));
+    }
+
+    private static double rayTriangleDistance(double[] origin, double[] direction,
+                                              double[] first, double[] second, double[] third) {
+        double[] edge1 = subtract(second, first);
+        double[] edge2 = subtract(third, first);
+        double[] perpendicular = cross(direction, edge2);
+        double determinant = dot(edge1, perpendicular);
+        if (Math.abs(determinant) < 1.0E-9) {
+            return -1.0;
+        }
+        double inverse = 1.0 / determinant;
+        double[] fromVertex = subtract(origin, first);
+        double u = dot(fromVertex, perpendicular) * inverse;
+        if (u < 0.0 || u > 1.0) {
+            return -1.0;
+        }
+        double[] cross = cross(fromVertex, edge1);
+        double v = dot(direction, cross) * inverse;
+        if (v < 0.0 || u + v > 1.0) {
+            return -1.0;
+        }
+        double distance = dot(edge2, cross) * inverse;
+        return distance >= 0.0 ? distance : -1.0;
+    }
+
+    private static double dot(double[] first, double[] second) {
+        return first[0] * second[0] + first[1] * second[1] + first[2] * second[2];
+    }
+
+    private static int voxelCoordinate(double position, double from, double to) {
+        int minimum = (int) Math.floor(from);
+        int maximum = (int) Math.ceil(to) - 1;
+        return Math.max(minimum, Math.min(maximum, (int) Math.floor(position)));
+    }
+
     public static List<ModelSeat> seatVoxels(JsonObject model) {
         LinkedHashSet<ModelSeat> voxels = new LinkedHashSet<>();
-        JsonArray cubes = model.getAsJsonArray("cubes");
+        JsonArray cubes = model.has("cubes") && model.get("cubes").isJsonArray()
+                ? model.getAsJsonArray("cubes") : new JsonArray();
         for (var element : cubes) {
             if (!element.isJsonObject()) {
                 continue;
@@ -271,7 +364,8 @@ public final class ModelPreviewRenderer {
 
     private static List<double[][]> cubeVertices(JsonObject model) {
         List<double[][]> cubes = new ArrayList<>();
-        JsonArray elements = model.getAsJsonArray("cubes");
+        JsonArray elements = model.has("cubes") && model.get("cubes").isJsonArray()
+                ? model.getAsJsonArray("cubes") : new JsonArray();
         for (var element : elements) {
             if (!element.isJsonObject()) {
                 continue;
@@ -284,6 +378,57 @@ public final class ModelPreviewRenderer {
             }
         }
         return cubes;
+    }
+
+    private static List<double[][]> meshFaceVertices(JsonObject model) {
+        List<double[][]> faces = new ArrayList<>();
+        if (!model.has("meshes") || !model.get("meshes").isJsonArray()) {
+            return faces;
+        }
+        for (var meshElement : model.getAsJsonArray("meshes")) {
+            if (!meshElement.isJsonObject()) {
+                continue;
+            }
+            JsonObject mesh = meshElement.getAsJsonObject();
+            if (!mesh.has("faces") || !mesh.get("faces").isJsonArray()) {
+                continue;
+            }
+            for (var faceElement : mesh.getAsJsonArray("faces")) {
+                if (!faceElement.isJsonObject()) {
+                    continue;
+                }
+                JsonArray points = faceElement.getAsJsonObject().getAsJsonArray("vertices");
+                if (points == null || points.size() < 3 || points.size() > 64) {
+                    continue;
+                }
+                double[][] face = new double[points.size()][];
+                for (int index = 0; index < points.size(); index++) {
+                    face[index] = vector(points.get(index).getAsJsonArray());
+                    if (face[index] == null) {
+                        face = null;
+                        break;
+                    }
+                }
+                if (face != null) {
+                    faces.add(face);
+                }
+            }
+        }
+        return faces;
+    }
+
+    private static void addMeshFace(List<ProjectedFace> faces, double[][] vertices, Camera camera) {
+        double[][] points = new double[vertices.length][2];
+        double depth = 0.0;
+        for (int index = 0; index < vertices.length; index++) {
+            double[] projected = camera.project(vertices[index]);
+            if (projected == null) {
+                return;
+            }
+            points[index] = projected;
+            depth += camera.towardDepth(vertices[index]);
+        }
+        faces.add(new ProjectedFace(points, depth / vertices.length, FACE_COLORS[0], null));
     }
 
     private static Camera camera(List<double[][]> cubes, double yaw, double pitch) {
@@ -408,7 +553,8 @@ public final class ModelPreviewRenderer {
 
     private static Map<ModelSeat, double[]> projectVoxels(JsonObject model, int rotationStep) {
         Map<ModelSeat, double[]> projected = new LinkedHashMap<>();
-        JsonArray cubes = model.getAsJsonArray("cubes");
+        JsonArray cubes = model.has("cubes") && model.get("cubes").isJsonArray()
+                ? model.getAsJsonArray("cubes") : new JsonArray();
         List<double[][]> vertices = new ArrayList<>();
         double minX = Double.POSITIVE_INFINITY;
         double minY = Double.POSITIVE_INFINITY;

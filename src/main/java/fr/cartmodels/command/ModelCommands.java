@@ -131,6 +131,10 @@ public final class ModelCommands {
             CartModelInfo info = CartModelInfo.inspect(model);
             source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.header", name), false);
             source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.cubes", info.cubeCount()), false);
+            if (info.meshCount() > 0) {
+                source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.meshes", info.meshCount()),
+                        false);
+            }
             source.sendSuccess(() -> Component.translatable(
                     "commands.cartmodels.info.textures", info.embeddedTextureCount()), false);
             source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.size", info.dataSizeBytes()), false);

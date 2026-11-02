@@ -73,15 +73,43 @@ class CartModelParserTest {
     }
 
     @Test
-    void rejectsUnsupportedBlockbenchMeshGeometry() {
+    void rejectsBlockbenchMeshesUnlessTheExperimentalOptionIsEnabled() {
         String input = """
-                {"elements":[{"type":"mesh","from":[0,0,0],"to":[1,1,1],"faces":{}}]}
+                {"elements":[{"type":"mesh","vertices":{"a":[0,0,0],"b":[1,1,0],"c":[0,1,1]},
+                  "faces":{"face":{"vertices":["a","b","c"]}}}]}
                 """;
 
         IOException exception = assertThrows(IOException.class,
                 () -> CartModelParser.parse("mesh.bbmodel", input));
 
-        assertTrue(exception.getMessage().contains("cube elements"));
+        assertTrue(exception.getMessage().contains("experimental"));
+    }
+
+    @Test
+    void importsExperimentalBlockbenchMeshesAndValidatesTheirSeatVoxels() throws Exception {
+        String input = """
+                {
+                  "cartmodels_experimental_meshes": true,
+                  "cartmodels_seat_voxel_size": 1,
+                  "cartmodels_seats": [[0, 0, 0]],
+                  "elements": [{
+                    "type": "mesh",
+                    "vertices": {"a": [0, 0, 0], "b": [1, 1, 0], "c": [0, 1, 1]},
+                    "faces": {"face": {
+                      "vertices": ["a", "b", "c"],
+                      "uv": {"a": [0, 0], "b": [16, 0], "c": [0, 16]},
+                      "texture": 0
+                    }}
+                  }]
+                }
+                """;
+
+        String parsed = CartModelParser.parse("mesh.bbmodel", input);
+
+        assertTrue(parsed.contains("\"experimentalMeshes\":true"));
+        assertTrue(parsed.contains("\"meshes\":["));
+        assertTrue(parsed.contains("\"vertices\":[[0.0,0.0,0.0],[1.0,1.0,0.0],[0.0,1.0,1.0]]"));
+        assertTrue(parsed.contains("\"seats\":[[0,0,0]]"));
     }
 
     @Test

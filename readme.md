@@ -17,7 +17,7 @@ Mod NeoForge pour Minecraft 1.21.1 qui importe des modèles Blockbench (`.bbmode
 4. Le modèle est envoyé au serveur, validé, puis enregistré avec le monde. En solo, le serveur intégré effectue l’import et le stockage.
 5. Exécuter `/give-model <nom> [quantité]` pour obtenir le bloc correspondant (quantité de 1 à 64). Les noms sont proposés par la complétion de commande.
 6. Utiliser `/list-models [page]` pour parcourir les modèles importés, 20 par page.
-7. Utiliser `/model-info <nom>` pour consulter le nombre de cuboïdes, les textures et la taille stockée.
+7. Utiliser `/model-info <nom>` pour consulter le nombre de cuboïdes et de meshes, les textures et la taille stockée.
 
 Importer à nouveau un modèle sous un nom existant le remplace et actualise son rendu sur les clients connectés.
 Les blocs orientent automatiquement le modèle selon la direction du joueur lors de la pose. Dans `/list-models`, cliquer sur un nom prépare la commande `/give-model` correspondante.
@@ -30,7 +30,7 @@ Les transferts interrompus sont automatiquement nettoyés ; le serveur limite é
 
 ## Formats et limites
 
-- Taille maximale d’un fichier : 8 Mio ; maximum 4 096 cubes et 32 textures PNG intégrées (2 Mio par texture, 2 048×2 048 pixels).
-- Les projets `.bbmodel` sont pris en charge pour leurs éléments cubiques et leurs textures PNG intégrées. Les géométries mesh sont refusées ; les transformations de groupes parents ne sont pas appliquées.
+- Taille maximale d’un fichier : 8 Mio ; maximum 4 096 éléments cubiques ou mesh et 32 textures PNG intégrées (2 Mio par texture, 2 048×2 048 pixels).
+- Les projets `.bbmodel` prennent en charge les cubes et les textures PNG intégrées. Les meshes Blockbench sont expérimentaux : coche l’option orange « Meshes (instable) » dans le menu d’import pour les activer ; ils peuvent s’afficher ou se sélectionner incorrectement. Les transformations de groupes parents ne sont pas appliquées.
 - Le JSON Minecraft doit contenir directement ses propres `elements`; les modèles reposant uniquement sur un parent ne sont pas pris en charge. Les références de texture externes ne sont pas téléversées et s’affichent avec la texture de remplacement.
 - Les dimensions Blockbench sont conservées. Le modèle peut dépasser son bloc d’ancrage, qui n’a aucune collision physique.

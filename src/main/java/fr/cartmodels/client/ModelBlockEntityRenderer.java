@@ -26,11 +26,12 @@ public final class ModelBlockEntityRenderer implements BlockEntityRenderer<Model
     public void render(ModelBlockEntity blockEntity, float partialTick, PoseStack poseStack,
                        MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
         JsonObject model = ModelRenderCache.get(blockEntity.getModelName());
-        if (model == null || !model.has("cubes")) {
+        if (model == null || (!model.has("cubes") && !model.has("meshes"))) {
             return;
         }
         JsonObject textures = model.has("textures") ? model.getAsJsonObject("textures") : new JsonObject();
-        JsonArray cubes = model.getAsJsonArray("cubes");
+        JsonArray cubes = model.has("cubes") && model.get("cubes").isJsonArray()
+                ? model.getAsJsonArray("cubes") : new JsonArray();
         poseStack.pushPose();
         poseStack.translate(0.5D, 0.0D, 0.5D);
         float yaw = switch (blockEntity.getBlockState().getValue(ModelBlock.FACING)) {
@@ -45,6 +46,23 @@ public final class ModelBlockEntityRenderer implements BlockEntityRenderer<Model
             if (element.isJsonObject()) {
                 renderCube(blockEntity.getModelName(), element.getAsJsonObject(), textures,
                         poseStack, bufferSource, packedLight, packedOverlay);
+            }
+        }
+        JsonArray meshes = model.has("meshes") && model.get("meshes").isJsonArray()
+                ? model.getAsJsonArray("meshes") : new JsonArray();
+        for (JsonElement meshElement : meshes) {
+            if (!meshElement.isJsonObject()) {
+                continue;
+            }
+            JsonObject mesh = meshElement.getAsJsonObject();
+            if (!mesh.has("faces") || !mesh.get("faces").isJsonArray()) {
+                continue;
+            }
+            for (JsonElement faceElement : mesh.getAsJsonArray("faces")) {
+                if (faceElement.isJsonObject()) {
+                    renderMeshFace(blockEntity.getModelName(), faceElement.getAsJsonObject(), textures,
+                            poseStack, bufferSource, packedLight, packedOverlay);
+                }
             }
         }
         poseStack.popPose();
@@ -175,6 +193,76 @@ public final class ModelBlockEntityRenderer implements BlockEntityRenderer<Model
                     .setNormal(pose, (float) normals[0][0], (float) normals[0][1],
                             (float) normals[0][2]);
         }
+    }
+
+    private static void renderMeshFace(String modelName, JsonObject face, JsonObject textures, PoseStack poseStack,
+                                       MultiBufferSource bufferSource, int packedLight, int packedOverlay) {
+        JsonArray sourceVertices = face.has("vertices") && face.get("vertices").isJsonArray()
+                ? face.getAsJsonArray("vertices") : null;
+        JsonArray sourceUvs = face.has("uv") && face.get("uv").isJsonArray() ? face.getAsJsonArray("uv") : null;
+        if (sourceVertices == null || sourceUvs == null || sourceVertices.size() < 3
+                || sourceVertices.size() != sourceUvs.size()) {
+            return;
+        }
+        double[][] points = new double[sourceVertices.size()][];
+        double[][] uvs = new double[sourceUvs.size()][];
+        for (int index = 0; index < sourceVertices.size(); index++) {
+            points[index] = vector(sourceVertices.get(index).getAsJsonArray(), 3);
+            uvs[index] = vector(sourceUvs.get(index).getAsJsonArray(), 2);
+            if (points[index] == null || uvs[index] == null) {
+                return;
+            }
+        }
+        String textureId = face.has("texture") ? face.get("texture").getAsString() : "";
+        JsonObject textureData = textures.has(textureId) && textures.get(textureId).isJsonObject()
+                ? textures.getAsJsonObject(textureId) : null;
+        String encodedTexture = textureData != null && textureData.has("image")
+                ? textureData.get("image").getAsString() : "";
+        ResourceLocation texture = encodedTexture.isEmpty() ? FALLBACK_TEXTURE
+                : ModelRenderCache.textureLocation(modelName, textureId);
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
+        PoseStack.Pose pose = poseStack.last();
+        Matrix4f positionMatrix = pose.pose();
+        double uvWidth = textureData != null && textureData.has("width")
+                ? textureData.get("width").getAsDouble() : 16.0;
+        double uvHeight = textureData != null && textureData.has("height")
+                ? textureData.get("height").getAsDouble() : 16.0;
+        for (int index = 1; index < points.length - 1; index++) {
+            double[] edge1 = subtract(points[index], points[0]);
+            double[] edge2 = subtract(points[index + 1], points[0]);
+            double[] normal = normalize(cross(edge1, edge2));
+            int[] triangle = {0, index, index + 1};
+            for (int vertexIndex : triangle) {
+                consumer.addVertex(positionMatrix, (float) (points[vertexIndex][0] / 16.0),
+                                (float) (points[vertexIndex][1] / 16.0),
+                                (float) (points[vertexIndex][2] / 16.0))
+                        .setColor(255, 255, 255, 255)
+                        .setUv((float) (uvs[vertexIndex][0] / uvWidth), (float) (uvs[vertexIndex][1] / uvHeight))
+                        .setOverlay(packedOverlay)
+                        .setLight(packedLight)
+                        .setNormal(pose, (float) normal[0], (float) normal[1], (float) normal[2]);
+            }
+        }
+    }
+
+    private static double[] subtract(double[] first, double[] second) {
+        return new double[]{first[0] - second[0], first[1] - second[1], first[2] - second[2]};
+    }
+
+    private static double[] cross(double[] first, double[] second) {
+        return new double[]{
+                first[1] * second[2] - first[2] * second[1],
+                first[2] * second[0] - first[0] * second[2],
+                first[0] * second[1] - first[1] * second[0]
+        };
+    }
+
+    private static double[] normalize(double[] vector) {
+        double length = Math.sqrt(vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]);
+        if (length < 1.0E-9) {
+            return new double[]{0, 1, 0};
+        }
+        return new double[]{vector[0] / length, vector[1] / length, vector[2] / length};
     }
 
     private static double[] vector(JsonArray array, int expectedSize) {

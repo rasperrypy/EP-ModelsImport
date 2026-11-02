@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.0.0
+
+### Support expérimental des meshes Blockbench
+- Le panneau d’import propose une case orange « Meshes (instable) » pour importer les éléments mesh en plus des cubes.
+- Les meshes activés sont affichés dans l’aperçu 3D et en jeu ; le survol et la sélection de sièges s’appuient sur les faces du mesh.
+- Les commandes d’information du modèle indiquent le nombre de meshes.
+- Les modèles cubiques existants restent compatibles ; les meshes sont refusés à l’import tant que l’option expérimentale n’est pas activée.
+
 ## 5.6.0
 
 ### Sièges par voxel du modèle
