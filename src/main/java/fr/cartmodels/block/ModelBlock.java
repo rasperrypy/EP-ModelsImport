@@ -158,6 +158,11 @@ public final class ModelBlock extends BaseEntityBlock {
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity instanceof ModelBlockEntity modelBlockEntity
+                && modelBlockEntity.getSelectionBounds() != null) {
+            return modelBlockEntity.getSelectionBounds().selectionShape(state.getValue(FACING));
+        }
         return Shapes.block();
     }
 

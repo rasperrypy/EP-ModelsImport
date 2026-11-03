@@ -1,5 +1,16 @@
 # Changelog
 
+## 7.0.0
+
+### Contour de sélection centré sur le modèle
+- Le contour sélectionnable suit désormais les limites de la géométrie des cubes et des meshes au lieu de couvrir systématiquement tout le bloc d’ancrage.
+- Les rotations des cubes et l’orientation du bloc sont prises en compte ; les modèles déjà placés conservent leurs données.
+- La collision physique reste désactivée.
+
+### Documentation et qualité de vie
+- README réorganisé avec installation, prise en main, commandes, sièges, limites, compatibilité et dépannage.
+- Ajout de tests sur les limites, rotations, meshes et centrage du contour.
+
 ## 6.5.0
 
 ### Verrouillage temporaire des sièges
