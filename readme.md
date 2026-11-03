@@ -9,7 +9,7 @@ Cart Models est un mod NeoForge qui transforme des projets Blockbench et des mod
 
 - Import de projets Blockbench (`.bbmodel`) et de modèles Minecraft (`.json`).
 - Aperçu 3D tournable avec sélection des sièges par voxel Blockbench.
-- Meshes Blockbench expérimentaux activés par une case orange dans l’écran d’import.
+- Meshes Blockbench expérimentaux
 - Textures PNG intégrées, transférées avec le modèle.
 - Blocs orientés selon la direction du joueur au placement, sans collision physique.
 - Contour de sélection calculé depuis la géométrie réelle du modèle et centré sur ses limites dans le bloc d’ancrage.
@@ -50,7 +50,7 @@ Importer un modèle avec un nom déjà utilisé remplace sa définition pour les
 
 ## Sièges et interaction
 
-- Les sièges sont sélectionnés individuellement dans l’aperçu 3D; jusqu’à 64 sièges peuvent être définis par modèle.
+- Les sièges sont sélectionnés individuellement dans l’aperçu 3D; jusqu’à 64 sièges (1 siege par voxel) peuvent être définis par modèle.
 - Interagir avec le bloc tente d’installer le joueur sur le premier siège libre.
 - Sans verrouillage, s’accroupir permet de descendre.
 - Avec un verrouillage actif, la sortie normale est temporairement bloquée et le temps restant est indiqué. `/unstuck` reste disponible comme sortie d’urgence.
