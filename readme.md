@@ -1,6 +1,7 @@
 # Cart Models
 
 Cart Models est un mod NeoForge qui transforme des projets Blockbench et des modèles JSON Minecraft en blocs décoratifs nommés. Les modèles peuvent dépasser leur bloc d’ancrage, afficher des textures intégrées et contenir des sièges utilisables.
+Ce mod est vibecodé :3
 
 > **Compatibilité :** Minecraft 1.21.1 · NeoForge 21.1.265 · Java 21
 > **Version publiée :** 7.0.0
