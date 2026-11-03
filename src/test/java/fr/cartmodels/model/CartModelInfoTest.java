@@ -12,6 +12,7 @@ class CartModelInfoTest {
         String model = """
                 {
                   "cubes": [{}, {}],
+                  "meshes": [],
                   "textures": {
                     "texture_0": {"image": "aGVsbG8="},
                     "external": {}
@@ -22,8 +23,19 @@ class CartModelInfoTest {
         CartModelInfo info = CartModelInfo.inspect(model);
 
         assertEquals(2, info.cubeCount());
+        assertEquals(0, info.meshCount());
         assertEquals(1, info.embeddedTextureCount());
         assertEquals(model.getBytes(StandardCharsets.UTF_8).length, info.dataSizeBytes());
+    }
+
+    @Test
+    void reportsExperimentalMeshCount() throws Exception {
+        CartModelInfo info = CartModelInfo.inspect("""
+                {"cubes":[],"meshes":[{},{}],"textures":{}}
+                """);
+
+        assertEquals(0, info.cubeCount());
+        assertEquals(2, info.meshCount());
     }
 
     @Test

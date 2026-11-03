@@ -27,6 +27,51 @@ class CartModelParserTest {
     }
 
     @Test
+    void preparesCompactUploadWithoutEditorMetadataButKeepsRenderableData() throws Exception {
+        String input = """
+                {
+                  "name": "Decorated project",
+                  "outliner": [{"name": "Editor-only group", "children": ["cube-1"]}],
+                  "animations": [{"name": "unused animation", "animators": {}}],
+                  "textures": [{
+                    "id": "texture-id",
+                    "name": "paint",
+                    "source": "data:image/png;base64,%s",
+                    "relative_path": "textures/paint.png",
+                    "saved": true
+                  }],
+                  "elements": [{
+                    "type": "cube",
+                    "uuid": "cube-1",
+                    "name": "Visible cube",
+                    "from": [0, 0, 0],
+                    "to": [16, 16, 16],
+                    "origin": [8, 8, 8],
+                    "rotation": [0, 0, 0],
+                    "faces": {"north": {
+                      "uv": [0, 0, 16, 16],
+                      "texture": "texture-id",
+                      "tint": 0,
+                      "enabled": true
+                    }}
+                  }]
+                }
+                """.formatted(Base64.getEncoder().encodeToString(tinyPng()));
+
+        byte[] prepared = CartModelParser.prepareUpload("compact.bbmodel", input);
+        String compact = new String(prepared, java.nio.charset.StandardCharsets.UTF_8);
+        String normalized = CartModelParser.parse("compact.bbmodel", compact);
+
+        assertTrue(prepared.length < input.getBytes(java.nio.charset.StandardCharsets.UTF_8).length);
+        assertTrue(!compact.contains("animations"));
+        assertTrue(!compact.contains("outliner"));
+        assertTrue(!compact.contains("relative_path"));
+        assertTrue(compact.contains("\"texture\":\"texture-id\""));
+        assertTrue(normalized.contains("\"texture\":\"texture_0\""));
+        assertTrue(normalized.contains("\"euler\":[0.0,0.0,0.0]"));
+    }
+
+    @Test
     void parsesMinecraftBlockModelElementsAndExternalTextureFallback() throws Exception {
         String input = """
                 {
@@ -44,6 +89,28 @@ class CartModelParserTest {
         assertTrue(model.contains("\"cubes\":[{"));
         assertTrue(model.contains("\"texture\":\"\""));
         assertTrue(model.contains("\"seats\":[]"));
+    }
+
+    @Test
+    void storesSeatLockDurationAndRejectsUnsupportedValues() throws Exception {
+        String input = """
+                {
+                  "cartmodels_seat_lock_seconds": 45,
+                  "elements": [{
+                    "from": [0, 0, 0],
+                    "to": [16, 16, 16],
+                    "faces": {"north": {"texture": "missing"}}
+                  }]
+                }
+                """;
+
+        assertTrue(CartModelParser.parse("locked.json", input).contains("\"seatLockSeconds\":45"));
+        assertTrue(CartModelParser.parse("unlocked.json", input.replace(
+                "\"cartmodels_seat_lock_seconds\": 45,", "")).contains("\"seatLockSeconds\":0"));
+        assertThrows(IOException.class, () -> CartModelParser.parse("fraction.json",
+                input.replace("45", "1.5")));
+        assertThrows(IOException.class, () -> CartModelParser.parse("too-long.json",
+                input.replace("45", "3601")));
     }
 
     @Test
@@ -73,15 +140,43 @@ class CartModelParserTest {
     }
 
     @Test
-    void rejectsUnsupportedBlockbenchMeshGeometry() {
+    void rejectsBlockbenchMeshesUnlessTheExperimentalOptionIsEnabled() {
         String input = """
-                {"elements":[{"type":"mesh","from":[0,0,0],"to":[1,1,1],"faces":{}}]}
+                {"elements":[{"type":"mesh","vertices":{"a":[0,0,0],"b":[1,1,0],"c":[0,1,1]},
+                  "faces":{"face":{"vertices":["a","b","c"]}}}]}
                 """;
 
         IOException exception = assertThrows(IOException.class,
                 () -> CartModelParser.parse("mesh.bbmodel", input));
 
-        assertTrue(exception.getMessage().contains("cube elements"));
+        assertTrue(exception.getMessage().contains("experimental"));
+    }
+
+    @Test
+    void importsExperimentalBlockbenchMeshesAndValidatesTheirSeatVoxels() throws Exception {
+        String input = """
+                {
+                  "cartmodels_experimental_meshes": true,
+                  "cartmodels_seat_voxel_size": 1,
+                  "cartmodels_seats": [[0, 0, 0]],
+                  "elements": [{
+                    "type": "mesh",
+                    "vertices": {"a": [0, 0, 0], "b": [1, 1, 0], "c": [0, 1, 1]},
+                    "faces": {"face": {
+                      "vertices": ["a", "b", "c"],
+                      "uv": {"a": [0, 0], "b": [16, 0], "c": [0, 16]},
+                      "texture": 0
+                    }}
+                  }]
+                }
+                """;
+
+        String parsed = CartModelParser.parse("mesh.bbmodel", input);
+
+        assertTrue(parsed.contains("\"experimentalMeshes\":true"));
+        assertTrue(parsed.contains("\"meshes\":["));
+        assertTrue(parsed.contains("\"vertices\":[[0.0,0.0,0.0],[1.0,1.0,0.0],[0.0,1.0,1.0]]"));
+        assertTrue(parsed.contains("\"seats\":[[0,0,0]]"));
     }
 
     @Test

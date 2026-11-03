@@ -82,6 +82,7 @@ public final class ModelBlock extends BaseEntityBlock {
             JsonObject model = JsonParser.parseString(stored).getAsJsonObject();
             int voxelSize = model.has("seatVoxelSize")
                     ? model.get("seatVoxelSize").getAsInt() : ModelSeat.LEGACY_VOXEL_SIZE;
+            int lockSeconds = model.has("seatLockSeconds") ? model.get("seatLockSeconds").getAsInt() : 0;
             List<ModelSeat> seats = ModelSeat.read(model.get("seats"), voxelSize);
             if (seats.isEmpty()) {
                 player.displayClientMessage(Component.translatable("seat.cartmodels.none"), true);
@@ -107,7 +108,7 @@ public final class ModelBlock extends BaseEntityBlock {
                 if (anchor == null) {
                     throw new IllegalStateException("Could not create a seat anchor entity.");
                 }
-                anchor.setSeat(pos, index);
+                anchor.setSeat(pos, index, lockSeconds);
                 anchor.setPos(pos.getX() + local[0], pos.getY() + local[1], pos.getZ() + local[2]);
                 anchor.setYRot(state.getValue(FACING).toYRot());
                 if (!level.addFreshEntity(anchor)) {
@@ -115,7 +116,9 @@ public final class ModelBlock extends BaseEntityBlock {
                     return InteractionResult.CONSUME;
                 }
                 if (player.startRiding(anchor, true)) {
-                    player.displayClientMessage(Component.translatable("seat.cartmodels.entered", index + 1), true);
+                    player.displayClientMessage(lockSeconds > 0
+                            ? Component.translatable("seat.cartmodels.locked", index + 1, lockSeconds)
+                            : Component.translatable("seat.cartmodels.entered", index + 1), true);
                 } else {
                     anchor.discard();
                     player.displayClientMessage(Component.translatable("seat.cartmodels.failed"), true);
@@ -155,6 +158,11 @@ public final class ModelBlock extends BaseEntityBlock {
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        BlockEntity blockEntity = level.getBlockEntity(pos);
+        if (blockEntity instanceof ModelBlockEntity modelBlockEntity
+                && modelBlockEntity.getSelectionBounds() != null) {
+            return modelBlockEntity.getSelectionBounds().selectionShape(state.getValue(FACING));
+        }
         return Shapes.block();
     }
 

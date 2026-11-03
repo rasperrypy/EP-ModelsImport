@@ -30,9 +30,11 @@ import net.minecraft.resources.ResourceLocation;
 
 public final class CartModelImportScreen extends Screen {
     private EditBox nameInput;
+    private EditBox seatLockInput;
     private Button importButton;
     private Button clearButton;
     private Button rotateButton;
+    private Button experimentalMeshesButton;
     private Path selectedFile;
     private byte[] selectedBytes;
     private JsonObject previewModel;
@@ -42,6 +44,7 @@ public final class CartModelImportScreen extends Screen {
     private boolean loading;
     private boolean uploading;
     private boolean replacementConfirmation;
+    private boolean experimentalMeshesEnabled;
     private boolean previewDragging;
     private boolean previewDragMoved;
     private Integer previousMenuBackgroundBlurriness;
@@ -52,6 +55,7 @@ public final class CartModelImportScreen extends Screen {
     private double previewDragStartX;
     private double previewDragStartY;
     private int cubeCount;
+    private int meshCount;
     private int textureCount;
     private int dataSize;
     private int selectionRevision;
@@ -78,9 +82,23 @@ public final class CartModelImportScreen extends Screen {
         });
         addRenderableWidget(nameInput);
 
+        seatLockInput = new EditBox(font, infoX + 52, panelY + 48, Math.max(36, infoWidth - 52), 18,
+                Component.translatable("screen.cartmodels.import.seat_lock"));
+        seatLockInput.setMaxLength(4);
+        seatLockInput.setValue("0");
+        seatLockInput.setFilter(value -> value.isEmpty() || value.chars().allMatch(Character::isDigit));
+        addRenderableWidget(seatLockInput);
+
         rotateButton = addRenderableWidget(Button.builder(
                         Component.translatable("screen.cartmodels.import.rotate"), button -> rotatePreview())
                 .bounds(panelX, panelY + 116, 54, 20)
+                .build());
+        experimentalMeshesButton = addRenderableWidget(Button.builder(Component.empty(),
+                        button -> {
+                            experimentalMeshesEnabled = !experimentalMeshesEnabled;
+                            updateButtonState();
+                        })
+                .bounds(infoX, panelY + 116, 14, 14)
                 .build());
         clearButton = addRenderableWidget(Button.builder(
                         Component.translatable("screen.cartmodels.import.clear"), button -> clearSelection())
@@ -148,6 +166,7 @@ public final class CartModelImportScreen extends Screen {
                     previewModel = preview.model();
                     selectedSeats.clear();
                     cubeCount = preview.info().cubeCount();
+                    meshCount = preview.info().meshCount();
                     textureCount = preview.info().embeddedTextureCount();
                     dataSize = preview.info().dataSizeBytes();
                     setLocalStatus(Component.translatable("screen.cartmodels.import.ready"), true);
@@ -174,9 +193,11 @@ public final class CartModelImportScreen extends Screen {
                     .onMalformedInput(CodingErrorAction.REPORT)
                     .onUnmappableCharacter(CodingErrorAction.REPORT)
                     .decode(ByteBuffer.wrap(bytes)).toString();
-            String normalized = CartModelParser.parse(fileName, contents);
+            byte[] preparedBytes = CartModelParser.prepareUpload(fileName, contents);
+            String preparedContents = new String(preparedBytes, StandardCharsets.UTF_8);
+            String normalized = CartModelParser.parse(fileName, preparedContents, true);
             JsonObject model = JsonParser.parseString(normalized).getAsJsonObject();
-            return new PreviewData(bytes, model, CartModelInfo.inspect(normalized));
+            return new PreviewData(preparedBytes, model, CartModelInfo.inspect(normalized));
         } catch (IOException | IllegalStateException | JsonSyntaxException | IllegalArgumentException exception) {
             throw new CompletionException(exception);
         }
@@ -214,11 +235,22 @@ public final class CartModelImportScreen extends Screen {
         try {
             JsonObject source = JsonParser.parseString(new String(selectedBytes, StandardCharsets.UTF_8))
                     .getAsJsonObject();
+            int seatLockSeconds = parseSeatLockSeconds();
+            if (seatLockSeconds < 0) {
+                return;
+            }
+            boolean containsMeshes = previewModel != null && previewModel.has("meshes")
+                    && previewModel.getAsJsonArray("meshes").size() > 0;
+            if (containsMeshes && !experimentalMeshesEnabled) {
+                setLocalStatus(Component.translatable("screen.cartmodels.import.meshes_unstable_required"), false);
+                return;
+            }
             JsonArray seats = new JsonArray();
             selectedSeats.forEach(seat -> seats.add(seat.toJson()));
             source.add("cartmodels_seats", seats);
             source.addProperty("cartmodels_seat_voxel_size", ModelSeat.MODEL_VOXEL_SIZE);
-            source.addProperty("cartmodels_seat_voxel_size", ModelSeat.MODEL_VOXEL_SIZE);
+            source.addProperty("cartmodels_experimental_meshes", experimentalMeshesEnabled);
+            source.addProperty("cartmodels_seat_lock_seconds", seatLockSeconds);
             byte[] uploadBytes = source.toString().getBytes(StandardCharsets.UTF_8);
             if (uploadBytes.length > CartModelParser.MAX_FILE_BYTES) {
                 setLocalStatus(Component.translatable("screen.cartmodels.import.seats_too_large"), false);
@@ -232,6 +264,25 @@ public final class CartModelImportScreen extends Screen {
             setLocalStatus(Component.translatable("screen.cartmodels.import.upload_failed",
                     exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage()),
                     false);
+        }
+    }
+
+    private int parseSeatLockSeconds() {
+        String value = seatLockInput.getValue().trim();
+        if (value.isEmpty()) {
+            setLocalStatus(Component.translatable("screen.cartmodels.import.seat_lock_invalid"), false);
+            return -1;
+        }
+        try {
+            int seconds = Integer.parseInt(value);
+            if (seconds > CartModelParser.MAX_SEAT_LOCK_SECONDS) {
+                setLocalStatus(Component.translatable("screen.cartmodels.import.seat_lock_invalid"), false);
+                return -1;
+            }
+            return seconds;
+        } catch (NumberFormatException exception) {
+            setLocalStatus(Component.translatable("screen.cartmodels.import.seat_lock_invalid"), false);
+            return -1;
         }
     }
 
@@ -260,6 +311,7 @@ public final class CartModelImportScreen extends Screen {
         selectedSeats.clear();
         hoveredSeat = null;
         cubeCount = 0;
+        meshCount = 0;
         textureCount = 0;
         dataSize = 0;
         previewYaw = 45.0;
@@ -300,12 +352,19 @@ public final class CartModelImportScreen extends Screen {
                                     ? Component.translatable("screen.cartmodels.import.confirm_action")
                                     : Component.translatable("screen.cartmodels.import.action");
             importButton.setMessage(label);
+            boolean meshesRequireOptIn = previewModel != null && previewModel.has("meshes")
+                                    && previewModel.getAsJsonArray("meshes").size() > 0;
+            importButton.active = selectedBytes != null && !loading && !uploading
+                                    && (!meshesRequireOptIn || experimentalMeshesEnabled);
         }
         if (clearButton != null) {
             clearButton.active = selectedFile != null && !loading && !uploading;
         }
         if (rotateButton != null) {
             rotateButton.active = previewModel != null && !loading;
+        }
+        if (experimentalMeshesButton != null) {
+            experimentalMeshesButton.active = !loading && !uploading;
         }
     }
 
@@ -360,20 +419,40 @@ public final class CartModelImportScreen extends Screen {
             graphics.drawString(font, name, infoX, panelY + 40, 0xFFFFFFFF);
         }
         if (previewModel != null) {
-            graphics.drawString(font, Component.translatable("screen.cartmodels.import.cubes", cubeCount),
-                    infoX, panelY + 65, 0xFFE2E8F0);
+            Component geometry = meshCount > 0
+                    ? Component.translatable("screen.cartmodels.import.geometry", cubeCount, meshCount)
+                    : Component.translatable("screen.cartmodels.import.cubes", cubeCount);
+            graphics.drawString(font, geometry,
+                    infoX, panelY + 70, 0xFFE2E8F0);
             graphics.drawString(font, Component.translatable("screen.cartmodels.import.textures", textureCount),
-                    infoX, panelY + 78, 0xFFE2E8F0);
+                    infoX, panelY + 82, 0xFFE2E8F0);
             graphics.drawString(font, Component.translatable("screen.cartmodels.import.bytes", dataSize),
-                    infoX, panelY + 91, 0xFFE2E8F0);
+                    infoX, panelY + 94, 0xFFE2E8F0);
             graphics.drawString(font, Component.translatable(
                     "screen.cartmodels.import.seats", selectedSeats.size(), ModelSeat.MAX_SEATS),
-                    infoX, panelY + 104, 0xFFFFC857);
+                    infoX, panelY + 106, 0xFFFFC857);
         }
+        graphics.drawString(font, Component.translatable("screen.cartmodels.import.seat_lock_label"),
+                infoX, panelY + 53, 0xFFE2E8F0);
         int statusColor = statusSuccess ? 0xFF80FF80 : 0xFFFF8080;
         graphics.drawCenteredString(font, font.plainSubstrByWidth(status.getString(), width - 18),
                 width / 2, height - 43, statusColor);
         super.render(graphics, mouseX, mouseY, partialTick);
+        if (experimentalMeshesButton != null) {
+            int x = experimentalMeshesButton.getX() + 2;
+            int y = experimentalMeshesButton.getY() + 2;
+            int color = 0xFFFFA52A;
+            graphics.fill(x, y, x + 10, y + 10, color);
+            graphics.fill(x + 1, y + 1, x + 9, y + 9, 0xFF20252B);
+            if (experimentalMeshesEnabled) {
+                graphics.fill(x + 3, y + 5, x + 5, y + 7, color);
+                graphics.fill(x + 5, y + 7, x + 9, y + 3, color);
+            }
+            String option = font.plainSubstrByWidth(
+                    Component.translatable("screen.cartmodels.import.meshes_unstable").getString(),
+                    Math.max(0, width - x - 18));
+            graphics.drawString(font, option, x + 14, y + 1, color);
+        }
     }
 
     @Override

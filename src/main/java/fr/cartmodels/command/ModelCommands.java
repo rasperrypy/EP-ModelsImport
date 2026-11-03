@@ -4,6 +4,7 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import fr.cartmodels.CartModels;
+import fr.cartmodels.entity.CartSeatEntity;
 import fr.cartmodels.model.CartModelInfo;
 import fr.cartmodels.model.CartModelStore;
 import fr.cartmodels.network.ModelPayloads;
@@ -16,11 +17,13 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.EntityMountEvent;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.HoverEvent;
 
@@ -69,6 +72,42 @@ public final class ModelCommands {
                         .suggests(MODEL_SUGGESTIONS)
                         .executes(context -> showModelInfo(context.getSource(),
                                 StringArgumentType.getString(context, "name")))));
+
+        event.getDispatcher().register(Commands.literal("unstuck")
+                .executes(context -> unstuck(context.getSource().getPlayer(), context.getSource())));
+    }
+
+    @SubscribeEvent
+    public void onEntityMount(EntityMountEvent event) {
+        if (!event.isDismounting() || !(event.getEntityBeingMounted() instanceof CartSeatEntity seat)
+                || !seat.isSeatLocked()
+                || event.getEntityMounting() instanceof ServerPlayer player && !player.isAlive()) {
+            return;
+        }
+        event.setCanceled(true);
+        if (event.getLevel().isClientSide) {
+            return;
+        }
+        if (event.getEntityMounting() instanceof ServerPlayer player) {
+            player.displayClientMessage(Component.translatable(
+                    "seat.cartmodels.locked_remaining", seat.getRemainingLockSeconds()), true);
+        }
+    }
+
+    private static int unstuck(ServerPlayer player, net.minecraft.commands.CommandSourceStack source) {
+        if (player == null) {
+            source.sendFailure(Component.translatable("commands.cartmodels.unstuck.player_only"));
+            return 0;
+        }
+        if (player.getVehicle() instanceof CartSeatEntity seat) {
+            seat.clearSeatLock();
+            player.stopRiding();
+        }
+        int groundY = player.serverLevel().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, 0, 0);
+        player.teleportTo(player.serverLevel(), 0.5D, groundY, 0.5D, java.util.Set.of(),
+                player.getYRot(), player.getXRot());
+        player.displayClientMessage(Component.translatable("commands.cartmodels.unstuck.success"), false);
+        return 1;
     }
 
     private static int giveModel(ServerPlayer player, String name, int amount,
@@ -131,6 +170,10 @@ public final class ModelCommands {
             CartModelInfo info = CartModelInfo.inspect(model);
             source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.header", name), false);
             source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.cubes", info.cubeCount()), false);
+            if (info.meshCount() > 0) {
+                source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.meshes", info.meshCount()),
+                        false);
+            }
             source.sendSuccess(() -> Component.translatable(
                     "commands.cartmodels.info.textures", info.embeddedTextureCount()), false);
             source.sendSuccess(() -> Component.translatable("commands.cartmodels.info.size", info.dataSizeBytes()), false);

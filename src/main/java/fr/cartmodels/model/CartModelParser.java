@@ -20,6 +20,7 @@ import javax.imageio.ImageIO;
 
 public final class CartModelParser {
     public static final int MAX_FILE_BYTES = 8 * 1024 * 1024;
+    public static final int MAX_SEAT_LOCK_SECONDS = 3_600;
     private static final int MAX_CUBOIDS = 4_096;
     private static final int MAX_TEXTURES = 32;
     private static final int MAX_COORDINATE = 2_048;
@@ -30,6 +31,121 @@ public final class CartModelParser {
     }
 
     public static String parse(String fileName, String contents) throws IOException {
+        return parse(fileName, contents, false);
+    }
+
+    public static byte[] prepareUpload(String fileName, String contents) throws IOException {
+        JsonObject source = parseSource(contents);
+        JsonObject upload = new JsonObject();
+        JsonArray elements = source.has("elements") && source.get("elements").isJsonArray()
+                ? source.getAsJsonArray("elements") : null;
+        if (elements == null) {
+            throw new IOException("The model file does not contain an elements array.");
+        }
+        JsonArray compactElements = new JsonArray();
+        for (JsonElement element : elements) {
+            if (!element.isJsonObject()) {
+                compactElements.add(element.deepCopy());
+                continue;
+            }
+            JsonObject compactElement = new JsonObject();
+            JsonObject modelElement = element.getAsJsonObject();
+            boolean blockbench = fileName.toLowerCase(Locale.ROOT).endsWith(".bbmodel");
+            if (blockbench && modelElement.has("type")) {
+                compactElement.add("type", modelElement.get("type").deepCopy());
+            }
+            String type = blockbench && modelElement.has("type") && modelElement.get("type").isJsonPrimitive()
+                    ? modelElement.get("type").getAsString() : "cube";
+            if (type.equals("mesh")) {
+                copyIfPresent(modelElement, compactElement, "vertices");
+                copyMeshFaces(modelElement, compactElement);
+            } else {
+                copyIfPresent(modelElement, compactElement, "from");
+                copyIfPresent(modelElement, compactElement, "to");
+                copyIfPresent(modelElement, compactElement, "origin");
+                copyIfPresent(modelElement, compactElement, "rotation");
+                copyCubeFaces(modelElement, compactElement);
+            }
+            compactElements.add(compactElement);
+        }
+        upload.add("elements", compactElements);
+        if (source.has("textures")) {
+            JsonElement textures = source.get("textures");
+            if (fileName.toLowerCase(Locale.ROOT).endsWith(".bbmodel") && textures.isJsonArray()) {
+                JsonArray compactTextures = new JsonArray();
+                for (JsonElement textureElement : textures.getAsJsonArray()) {
+                    if (!textureElement.isJsonObject()) {
+                        compactTextures.add(textureElement.deepCopy());
+                        continue;
+                    }
+                    JsonObject texture = textureElement.getAsJsonObject();
+                    JsonObject compactTexture = new JsonObject();
+                    for (String key : List.of("source", "data", "path", "id", "name")) {
+                        copyIfPresent(texture, compactTexture, key);
+                    }
+                    compactTextures.add(compactTexture);
+                }
+                upload.add("textures", compactTextures);
+            } else {
+                upload.add("textures", textures.deepCopy());
+            }
+        }
+        for (String key : List.of("cartmodels_seats", "cartmodels_seat_voxel_size",
+                "cartmodels_experimental_meshes", "cartmodels_seat_lock_seconds")) {
+            copyIfPresent(source, upload, key);
+        }
+        byte[] bytes = upload.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (bytes.length > MAX_FILE_BYTES) {
+            throw new IOException("The prepared upload exceeds the 8 MiB limit.");
+        }
+        return bytes;
+    }
+
+    private static void copyIfPresent(JsonObject source, JsonObject destination, String key) {
+        if (source.has(key)) {
+            destination.add(key, source.get(key).deepCopy());
+        }
+    }
+
+    private static void copyCubeFaces(JsonObject source, JsonObject destination) {
+        if (!source.has("faces") || !source.get("faces").isJsonObject()) {
+            return;
+        }
+        JsonObject faces = new JsonObject();
+        for (Map.Entry<String, JsonElement> entry : source.getAsJsonObject("faces").entrySet()) {
+            if (!entry.getValue().isJsonObject()) {
+                faces.add(entry.getKey(), entry.getValue().deepCopy());
+                continue;
+            }
+            JsonObject face = new JsonObject();
+            for (String key : List.of("uv", "rotation", "texture")) {
+                copyIfPresent(entry.getValue().getAsJsonObject(), face, key);
+            }
+            faces.add(entry.getKey(), face);
+        }
+        destination.add("faces", faces);
+    }
+
+    private static void copyMeshFaces(JsonObject source, JsonObject destination) {
+        if (!source.has("faces") || !source.get("faces").isJsonObject()) {
+            return;
+        }
+        JsonObject faces = new JsonObject();
+        for (Map.Entry<String, JsonElement> entry : source.getAsJsonObject("faces").entrySet()) {
+            if (!entry.getValue().isJsonObject()) {
+                faces.add(entry.getKey(), entry.getValue().deepCopy());
+                continue;
+            }
+            JsonObject face = new JsonObject();
+            for (String key : List.of("vertices", "uv", "texture")) {
+                copyIfPresent(entry.getValue().getAsJsonObject(), face, key);
+            }
+            faces.add(entry.getKey(), face);
+        }
+        destination.add("faces", faces);
+    }
+
+    public static String parse(String fileName, String contents, boolean allowExperimentalMeshes) throws IOException {
         String lowerFileName = fileName.toLowerCase(Locale.ROOT);
         if (!lowerFileName.endsWith(".bbmodel") && !lowerFileName.endsWith(".json")) {
             throw new IOException("Only .bbmodel and .json model files are supported.");
@@ -38,24 +154,19 @@ public final class CartModelParser {
             throw new IOException("Model files cannot exceed 8 MiB.");
         }
 
-        JsonObject source;
-        try {
-            source = JsonParser.parseString(contents).getAsJsonObject();
-        } catch (IllegalStateException | JsonSyntaxException exception) {
-            throw new IOException("The model file does not contain a valid JSON object.", exception);
-        }
-
+        JsonObject source = parseSource(contents);
         boolean blockbench = lowerFileName.endsWith(".bbmodel");
         JsonArray elements = source.has("elements") && source.get("elements").isJsonArray()
                 ? source.getAsJsonArray("elements") : null;
         if (elements == null) {
             throw new IOException(blockbench
-                    ? "This Blockbench project has no cube elements."
+                    ? "This Blockbench project has no cube elements or experimental meshes."
                     : "This JSON is not a Minecraft block model with an elements array.");
         }
 
         JsonObject output = new JsonObject();
         JsonArray cubes = new JsonArray();
+        JsonArray meshes = new JsonArray();
         JsonObject textures = new JsonObject();
         Map<String, String> textureIds = new HashMap<>();
         if (blockbench) {
@@ -68,30 +179,87 @@ public final class CartModelParser {
             if (!element.isJsonObject()) {
                 throw new IOException("Every model element must be an object.");
             }
-            JsonObject cube = element.getAsJsonObject();
-            if (blockbench && cube.has("type")
-                    && (!cube.get("type").isJsonPrimitive() || !"cube".equals(cube.get("type").getAsString()))) {
-                throw new IOException("Only Blockbench cube elements are supported.");
+            JsonObject modelElement = element.getAsJsonObject();
+            String type = blockbench && modelElement.has("type") && modelElement.get("type").isJsonPrimitive()
+                    ? modelElement.get("type").getAsString() : "cube";
+            if (blockbench && !type.equals("cube") && !type.equals("mesh")) {
+                throw new IOException("Only Blockbench cube and mesh elements are supported.");
             }
-            if (cubes.size() >= MAX_CUBOIDS) {
-                throw new IOException("Models cannot contain more than 4,096 cuboids.");
+            if (blockbench && type.equals("mesh")) {
+                if (!allowExperimentalMeshes && !readExperimentalMeshFlag(source)) {
+                    throw new IOException("Blockbench mesh support is experimental. Enable it in the import screen.");
+                }
+                if (meshes.size() >= MAX_CUBOIDS) {
+                    throw new IOException("Models cannot contain more than 4,096 mesh elements.");
+                }
+                meshes.add(readMesh(modelElement, textureIds));
+            } else {
+                if (cubes.size() >= MAX_CUBOIDS) {
+                    throw new IOException("Models cannot contain more than 4,096 cuboids.");
+                }
+                cubes.add(readCube(modelElement, blockbench, textureIds));
             }
-            cubes.add(readCube(cube, blockbench, textureIds));
         }
-        if (cubes.isEmpty()) {
-            throw new IOException("The model has no renderable cuboids.");
+        if (cubes.isEmpty() && meshes.isEmpty()) {
+            throw new IOException("The model has no renderable elements.");
         }
 
         output.add("cubes", cubes);
+        output.add("meshes", meshes);
+        if (!meshes.isEmpty()) {
+            output.addProperty("experimentalMeshes", true);
+        }
         output.add("textures", textures);
         int seatVoxelSize = readSeatVoxelSize(source);
         output.addProperty("seatVoxelSize", seatVoxelSize);
-        output.add("seats", readSeats(source, elements, seatVoxelSize));
+        output.addProperty("seatLockSeconds", readSeatLockSeconds(source));
+        output.add("seats", readSeats(source, elements, seatVoxelSize, allowExperimentalMeshes
+                || readExperimentalMeshFlag(source)));
         String normalized = output.toString();
         if (normalized.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_FILE_BYTES) {
             throw new IOException("The normalized model exceeds the 8 MiB synchronization limit.");
         }
         return normalized;
+    }
+
+    private static JsonObject parseSource(String contents) throws IOException {
+        if (contents.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > MAX_FILE_BYTES) {
+            throw new IOException("Model files cannot exceed 8 MiB.");
+        }
+        JsonObject source;
+        try {
+            source = JsonParser.parseString(contents).getAsJsonObject();
+        } catch (IllegalStateException | JsonSyntaxException exception) {
+            throw new IOException("The model file does not contain a valid JSON object.", exception);
+        }
+        return source;
+    }
+
+    private static boolean readExperimentalMeshFlag(JsonObject source) throws IOException {
+        JsonElement element = source.get("cartmodels_experimental_meshes");
+        if (element == null) {
+            return false;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isBoolean()) {
+            throw new IOException("The experimental mesh option must be a boolean.");
+        }
+        return element.getAsBoolean();
+    }
+
+    private static int readSeatLockSeconds(JsonObject source) throws IOException {
+        JsonElement element = source.get("cartmodels_seat_lock_seconds");
+        if (element == null) {
+            return 0;
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            throw new IOException("Seat lock duration must be an integer.");
+        }
+        double value = element.getAsDouble();
+        if (value != Math.rint(value) || value < 0 || value > MAX_SEAT_LOCK_SECONDS) {
+            throw new IOException("Seat lock duration must be between 0 and "
+                    + MAX_SEAT_LOCK_SECONDS + " seconds.");
+        }
+        return (int) value;
     }
 
     private static int readSeatVoxelSize(JsonObject source) throws IOException {
@@ -109,7 +277,8 @@ public final class CartModelParser {
         return (int) value;
     }
 
-    private static JsonArray readSeats(JsonObject source, JsonArray elements, int voxelSize) throws IOException {
+    private static JsonArray readSeats(JsonObject source, JsonArray elements, int voxelSize,
+                                       boolean allowMeshes) throws IOException {
         List<ModelSeat> seats = ModelSeat.read(source.get("cartmodels_seats"), voxelSize);
         JsonArray result = new JsonArray();
         for (ModelSeat seat : seats) {
@@ -119,23 +288,31 @@ public final class CartModelParser {
                     continue;
                 }
                 JsonObject cube = element.getAsJsonObject();
-                JsonArray from = cube.getAsJsonArray("from");
-                JsonArray to = cube.getAsJsonArray("to");
-                if (from == null || to == null || from.size() != 3 || to.size() != 3) {
-                    continue;
+                if (cube.has("from") && cube.has("to")
+                        && cube.get("from").isJsonArray() && cube.get("to").isJsonArray()) {
+                    JsonArray from = cube.getAsJsonArray("from");
+                    JsonArray to = cube.getAsJsonArray("to");
+                    if (from.size() == 3 && to.size() == 3) {
+                        double x0 = from.get(0).getAsDouble();
+                        double y0 = from.get(1).getAsDouble();
+                        double z0 = from.get(2).getAsDouble();
+                        double x1 = to.get(0).getAsDouble();
+                        double y1 = to.get(1).getAsDouble();
+                        double z1 = to.get(2).getAsDouble();
+                        overlapsModel = x1 > seat.x() * (double) voxelSize
+                                && x0 < (seat.x() + 1) * (double) voxelSize
+                                && y1 > seat.y() * (double) voxelSize
+                                && y0 < (seat.y() + 1) * (double) voxelSize
+                                && z1 > seat.z() * (double) voxelSize
+                                && z0 < (seat.z() + 1) * (double) voxelSize;
+                    }
                 }
-                double x0 = from.get(0).getAsDouble();
-                double y0 = from.get(1).getAsDouble();
-                double z0 = from.get(2).getAsDouble();
-                double x1 = to.get(0).getAsDouble();
-                double y1 = to.get(1).getAsDouble();
-                double z1 = to.get(2).getAsDouble();
-                if (x1 > seat.x() * (double) voxelSize && x0 < (seat.x() + 1) * (double) voxelSize
-                        && y1 > seat.y() * (double) voxelSize && y0 < (seat.y() + 1) * (double) voxelSize
-                        && z1 > seat.z() * (double) voxelSize && z0 < (seat.z() + 1) * (double) voxelSize) {
+                if (!overlapsModel && allowMeshes && cube.has("type") && cube.get("type").isJsonPrimitive()
+                        && "mesh".equals(cube.get("type").getAsString())
+                        && meshOverlapsSeat(cube, seat, voxelSize)) {
                     overlapsModel = true;
-                    break;
                 }
+                if (overlapsModel) break;
             }
             if (!overlapsModel) {
                 throw new IOException("Seat voxel " + seat + " does not overlap a model cuboid.");
@@ -143,6 +320,49 @@ public final class CartModelParser {
             result.add(seat.toJson());
         }
         return result;
+    }
+
+    private static boolean meshOverlapsSeat(JsonObject mesh, ModelSeat seat, int voxelSize) {
+        if (!mesh.has("vertices") || !mesh.get("vertices").isJsonObject()
+                || !mesh.has("faces") || !mesh.get("faces").isJsonObject()) {
+            return false;
+        }
+        JsonObject vertices = mesh.getAsJsonObject("vertices");
+        for (Map.Entry<String, JsonElement> faceEntry : mesh.getAsJsonObject("faces").entrySet()) {
+            if (!faceEntry.getValue().isJsonObject()) {
+                continue;
+            }
+            JsonElement faceVertices = faceEntry.getValue().getAsJsonObject().get("vertices");
+            if (faceVertices == null || !faceVertices.isJsonArray()) {
+                continue;
+            }
+            double[] minimum = {Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY};
+            double[] maximum = {Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY};
+            for (JsonElement reference : faceVertices.getAsJsonArray()) {
+                if (!reference.isJsonPrimitive()) {
+                    continue;
+                }
+                JsonElement vertex = vertices.get(reference.getAsString());
+                if (vertex == null || !vertex.isJsonArray() || vertex.getAsJsonArray().size() != 3) {
+                    continue;
+                }
+                for (int axis = 0; axis < 3; axis++) {
+                    double coordinate = vertex.getAsJsonArray().get(axis).getAsDouble();
+                    minimum[axis] = Math.min(minimum[axis], coordinate);
+                    maximum[axis] = Math.max(maximum[axis], coordinate);
+                }
+            }
+            if (maximum[0] >= minimum[0] && maximum[1] >= minimum[1] && maximum[2] >= minimum[2]
+                    && maximum[0] >= seat.x() * (double) voxelSize
+                    && minimum[0] <= (seat.x() + 1) * (double) voxelSize
+                    && maximum[1] >= seat.y() * (double) voxelSize
+                    && minimum[1] <= (seat.y() + 1) * (double) voxelSize
+                    && maximum[2] >= seat.z() * (double) voxelSize
+                    && minimum[2] <= (seat.z() + 1) * (double) voxelSize) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void readBlockbenchTextures(JsonObject source, JsonObject textures, Map<String, String> textureIds)
@@ -236,6 +456,66 @@ public final class CartModelParser {
         textureData.addProperty("height", height);
         textures.add(id, textureData);
         return id;
+    }
+
+    private static JsonObject readMesh(JsonObject source, Map<String, String> textureIds) throws IOException {
+        JsonObject sourceVertices = source.has("vertices") && source.get("vertices").isJsonObject()
+                ? source.getAsJsonObject("vertices") : null;
+        JsonObject sourceFaces = source.has("faces") && source.get("faces").isJsonObject()
+                ? source.getAsJsonObject("faces") : null;
+        if (sourceVertices == null || sourceFaces == null || sourceVertices.size() < 3
+                || sourceVertices.size() > 16_384 || sourceFaces.isEmpty() || sourceFaces.size() > 4_096) {
+            throw new IOException("A Blockbench mesh must contain vertices and faces.");
+        }
+        JsonObject vertices = new JsonObject();
+        for (String id : sourceVertices.keySet()) {
+            vertices.add(id, readVector(sourceVertices, id, 3));
+        }
+        JsonArray faces = new JsonArray();
+        for (Map.Entry<String, JsonElement> entry : sourceFaces.entrySet()) {
+            if (!entry.getValue().isJsonObject()) {
+                throw new IOException("Blockbench mesh faces must be objects.");
+            }
+            JsonObject sourceFace = entry.getValue().getAsJsonObject();
+            JsonArray references = sourceFace.has("vertices") && sourceFace.get("vertices").isJsonArray()
+                    ? sourceFace.getAsJsonArray("vertices") : null;
+            if (references == null || references.size() < 3 || references.size() > 64) {
+                throw new IOException("A Blockbench mesh face must reference 3 to 64 vertices.");
+            }
+            JsonArray points = new JsonArray();
+            JsonArray uvs = new JsonArray();
+            JsonObject sourceUvs = sourceFace.has("uv") && sourceFace.get("uv").isJsonObject()
+                    ? sourceFace.getAsJsonObject("uv") : null;
+            for (JsonElement reference : references) {
+                if (!reference.isJsonPrimitive()) {
+                    throw new IOException("Blockbench mesh vertex references must be identifiers.");
+                }
+                String id = reference.getAsString();
+                if (!vertices.has(id)) {
+                    throw new IOException("A Blockbench mesh face references a missing vertex.");
+                }
+                points.add(vertices.get(id).deepCopy());
+                JsonArray uv = sourceUvs != null && sourceUvs.has(id)
+                        ? readVector(sourceUvs, id, 2) : new JsonArray();
+                if (uv.isEmpty()) {
+                    uv.add(0);
+                    uv.add(0);
+                }
+                uvs.add(uv);
+            }
+            JsonObject face = new JsonObject();
+            face.add("vertices", points);
+            face.add("uv", uvs);
+            face.addProperty("pixelUv", true);
+            String textureReference = sourceFace.has("texture") && sourceFace.get("texture").isJsonPrimitive()
+                    ? sourceFace.get("texture").getAsString() : "";
+            face.addProperty("texture", textureIds.getOrDefault(textureReference, ""));
+            faces.add(face);
+        }
+        JsonObject mesh = new JsonObject();
+        mesh.add("vertices", vertices);
+        mesh.add("faces", faces);
+        return mesh;
     }
 
     private static JsonObject readCube(JsonObject source, boolean blockbench, Map<String, String> textureIds)

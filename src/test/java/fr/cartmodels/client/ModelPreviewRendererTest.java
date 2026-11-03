@@ -1,6 +1,7 @@
 package fr.cartmodels.client;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -68,6 +69,27 @@ class ModelPreviewRendererTest {
     }
 
     @Test
+    void picksModelVoxelsBeyondTheOldEnumerationLimit() {
+        var model = JsonParser.parseString("""
+                {
+                  "cubes": [{
+                    "from": [0, 0, 0],
+                    "to": [128, 128, 128],
+                    "faces": {}
+                  }],
+                  "textures": {}
+                }
+                """).getAsJsonObject();
+
+        ModelSeat selected = ModelPreviewRenderer.voxelAt(model, 0, 0, 64, 64);
+
+        assertNotNull(selected);
+        assertTrue(selected.x() >= 0 && selected.x() < 128);
+        assertTrue(selected.y() >= 0 && selected.y() < 128);
+        assertTrue(selected.z() >= 0 && selected.z() < 128);
+    }
+
+    @Test
     void rendersPerspectivePreviewAndPicksTheVoxelUnderTheCameraRay() {
         var model = JsonParser.parseString("""
                 {
@@ -88,6 +110,28 @@ class ModelPreviewRendererTest {
         assertTrue(countDifferentPixels(frontView, rotatedView) > 20);
         assertEquals(new ModelSeat(0, 0, 0), ModelPreviewRenderer.voxelAt(model, 35, 25, 64, 64));
         assertNull(ModelPreviewRenderer.voxelAt(model, 35, 25, 0, 0));
+    }
+
+    @Test
+    void rendersAndPicksExperimentalMeshFaces() {
+        var model = JsonParser.parseString("""
+                {
+                  "cubes": [],
+                  "meshes": [{
+                    "faces": [{
+                      "vertices": [[-8, 0, 0], [8, 0, 0], [0, 16, 0]],
+                      "uv": [[0, 0], [16, 0], [8, 16]],
+                      "texture": ""
+                    }]
+                  }],
+                  "textures": {}
+                }
+                """).getAsJsonObject();
+
+        BufferedImage preview = ModelPreviewRenderer.renderInteractive(model, 45, 25, List.of(), null);
+
+        assertTrue(countOpaquePixels(preview) > 10);
+        assertNotNull(ModelPreviewRenderer.voxelAt(model, 45, 25, 64, 64));
     }
 
     @Test
