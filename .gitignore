@@ -5,4 +5,4 @@ runs/
 *.iml
 .idea/
 *.log
-*.jar
+*.probe
