@@ -6,7 +6,7 @@ Ce mod est vibecodé :3
 ![Minecraft](https://img.shields.io/badge/Minecraft-1.21.1-62A64B?style=for-the-badge&logo=minecraft&logoColor=white)
 ![NeoForge](https://img.shields.io/badge/NeoForge-21.1.265-orange?style=for-the-badge)
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
-![Version](https://img.shields.io/badge/Version-7.0.0-blue?style=for-the-badge)
+![Latest Version](https://img.shields.io/badge/Version-7.0.0-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 ## Fonctionnalités
