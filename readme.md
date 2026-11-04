@@ -64,7 +64,7 @@ Importer un modèle avec un nom déjà utilisé remplace sa définition pour les
 - Taille maximale d’un fichier : 8 Mio.
 - Jusqu’à 4 096 éléments cubiques ou mesh, 32 textures PNG intégrées et 2 Mio par texture (dimensions maximales 2 048×2 048).
 - Les cubes Blockbench et les références de texture intégrées sont pris en charge.
-- Les meshes Blockbench sont **expérimentaux** : activer la case orange **Meshes (instable)** avant d’importer. Leur rendu, leurs UV ou la sélection des sièges peuvent être imparfaits.
+- Les meshes Blockbench sont **expérimentaux** : activer la case orange **Meshes (instable)** avant d’importer. Leur rendu, leurs UV ou la sélection des sièges peuvent être cassés.
 - Les transformations des groupes parents et les modèles JSON reposant uniquement sur un parent ne sont pas appliqués.
 - Les textures externes ne sont pas téléversées et utilisent une texture de remplacement.
 - Les modèles déjà importés restent utilisables. Les anciens modèles sans durée de verrouillage gardent une durée de `0` seconde.
